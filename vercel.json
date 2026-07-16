@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/diagnostics-status.js": {
+            "maxDuration": 10
+    }
+  }
+}
