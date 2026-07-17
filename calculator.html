@@ -400,7 +400,13 @@
       <div class="grid">
         <div>
           <div class="card">
-            <h2>Завантажте 6 фото пристрою</h2>
+            <h2>Сфотографуйте телефоном</h2>
+            <p class="section-desc">Відскануйте QR — відкриється сторінка для завантаження 6 фото прямо з камери телефона. Результат перевірки AI автоматично зʼявиться тут, на цьому екрані.</p>
+            <div class="qr-box"><div id="qrcodePhotos"></div></div>
+            <div class="waiting-pill" id="waitingPillPhotos" hidden><span class="dot"></span><span id="waitingTextPhotos">Очікуємо фото з телефону…</span></div>
+          </div>
+          <div class="card" style="margin-top:16px;">
+            <h2>Або завантажте з цього пристрою</h2>
             <p class="section-desc">Екран, задня панель і чотири торці. AI звірить фото з відповідями кроку 1 (екран/дефекти зображення/корпус) і підкаже, якщо стан не збігається.</p>
             <div class="photo-grid" id="photoGrid"></div>
             <button type="button" class="continue-btn" id="analyzePhotosBtn" style="background:var(--purple);color:#fff;" disabled>Перевірити фото за допомогою AI</button>
@@ -410,7 +416,7 @@
         <div>
           <div class="card">
             <h2>Результат звірки</h2>
-            <div id="visualOverrideRows"><p class="empty-note">Завантажте фото і натисніть «Перевірити», щоб побачити пропозиції AI тут.</p></div>
+            <div id="visualOverrideRows"><p class="empty-note">Завантажте фото (з телефону по QR або з цього пристрою), щоб побачити пропозиції AI тут.</p></div>
           </div>
           <button type="button" class="continue-btn" id="toResultFromPhotosBtn" style="margin-top:16px;background:var(--purple);color:#fff;">Перейти до підсумку →</button>
           <button type="button" class="link-btn" id="skipPhotosBtn" style="color:var(--muted);">Пропустити фотофіксацію (залишити відповіді кроку 1)</button>
@@ -1233,6 +1239,7 @@ const DEFAULT_CONFIG = {
   // Values are placeholders — tune them in "Ціни та сценарії".
   apiEndpoint: "/api/diagnostics-status",
   aiApiEndpoint: "/api/analyze-photos",
+  photoSessionEndpoint: "/api/photo-session",
   testDefects: {
     TouchScreen: {label:"Сенсорний екран", pct:40},
     Multitouch: {label:"Мультитач", pct:15},
@@ -1292,6 +1299,7 @@ if (!CONFIG) CONFIG = deepClone(DEFAULT_CONFIG);
 if (!CONFIG.testDefects) CONFIG.testDefects = deepClone(DEFAULT_CONFIG.testDefects);
 if (!CONFIG.apiEndpoint) CONFIG.apiEndpoint = DEFAULT_CONFIG.apiEndpoint;
 if (!CONFIG.aiApiEndpoint) CONFIG.aiApiEndpoint = DEFAULT_CONFIG.aiApiEndpoint;
+if (!CONFIG.photoSessionEndpoint) CONFIG.photoSessionEndpoint = DEFAULT_CONFIG.photoSessionEndpoint;
 
 let dirty = false;
 
@@ -1319,6 +1327,9 @@ const wizard = {
   photos: {},             // zoneKey -> { mediaType, data (base64), previewUrl }
   aiAnalysis: null,       // { screen:{tierIndex,confidence}, display:{...}, body:{...} } from AI, once received
   visualOverrides: {},    // 'screen'|'display'|'body' -> tierIndex chosen by manager (null/undefined = use step-1 answer)
+  photoSessionId: null,   // random id shown as QR for the phone-upload page
+  photoSessionPollTimer: null,
+  photoSessionPollAttempts: 0,
 };
 
 const PHOTO_ZONES = [
@@ -1567,6 +1578,9 @@ function goToStep(n){
   }
   if (n===3){
     renderPhotoGrid();
+    startPhotoSession();
+  } else {
+    stopPhotoSessionPoll();
   }
   if (n===4){
     renderResultStep();
@@ -1576,6 +1590,10 @@ function goToStep(n){
 document.getElementById('toTestingBtn').addEventListener('click', () => {
   wizard.testResults = null;
   wizard.overrides = {};
+  wizard.photos = {};
+  wizard.aiAnalysis = null;
+  wizard.visualOverrides = {};
+  wizard.photoSessionId = null;
   document.getElementById('imeiInputCalc').value = wizard.imei || '';
   validateImeiCalc();
   goToStep(2);
@@ -1692,6 +1710,52 @@ async function pollCalc(imei){
 // ============================================================
 // STEP 3 — photo verification (AI vision vs. step-1 visual answers)
 // ============================================================
+function genSessionId(){
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+}
+
+function startPhotoSession(){
+  if (wizard.aiAnalysis) return; // already have a result, no need to open a new session
+  if (!wizard.photoSessionId) wizard.photoSessionId = genSessionId();
+
+  const box = document.getElementById('qrcodePhotos');
+  box.innerHTML = '';
+  const url = `${location.origin}/photo-upload.html?session=${wizard.photoSessionId}`;
+  new QRCode(box, { text: url, width: 148, height: 148, colorDark: '#262626', colorLight: '#ffffff' });
+
+  document.getElementById('waitingPillPhotos').hidden = false;
+  document.getElementById('waitingTextPhotos').textContent = 'Очікуємо фото з телефону…';
+
+  wizard.photoSessionPollAttempts = 0;
+  stopPhotoSessionPoll();
+  wizard.photoSessionPollTimer = setInterval(pollPhotoSession, 3000);
+}
+
+function stopPhotoSessionPoll(){
+  if (wizard.photoSessionPollTimer){ clearInterval(wizard.photoSessionPollTimer); wizard.photoSessionPollTimer = null; }
+}
+
+async function pollPhotoSession(){
+  wizard.photoSessionPollAttempts++;
+  if (wizard.photoSessionPollAttempts > 200){ // ~10 min
+    stopPhotoSessionPoll();
+    document.getElementById('waitingTextPhotos').textContent = 'Час очікування вичерпано — можна оновити сторінку або завантажити фото нижче вручну';
+    return;
+  }
+  try{
+    const res = await fetch(`${CONFIG.photoSessionEndpoint}?session=${wizard.photoSessionId}`);
+    if (res.status === 404) return; // no result yet
+    const data = await res.json();
+    if (!data || !data.result) return;
+
+    stopPhotoSessionPoll();
+    document.getElementById('waitingPillPhotos').hidden = true;
+    wizard.aiAnalysis = data.result;
+    renderVisualCompareRows();
+  }catch(e){ /* keep polling */ }
+}
+
 function renderPhotoGrid(){
   const grid = document.getElementById('photoGrid');
   grid.innerHTML = '';
@@ -1787,6 +1851,8 @@ document.getElementById('analyzePhotosBtn').addEventListener('click', async () =
       return;
     }
     wizard.aiAnalysis = data.result;
+    stopPhotoSessionPoll();
+    document.getElementById('waitingPillPhotos').hidden = true;
     renderVisualCompareRows();
     note.textContent = 'Перевірку завершено — перегляньте пропозиції нижче.';
   }catch(e){
@@ -2111,6 +2177,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
       if (!parsed.testDefects) parsed.testDefects = deepClone(DEFAULT_CONFIG.testDefects);
       if (!parsed.apiEndpoint) parsed.apiEndpoint = DEFAULT_CONFIG.apiEndpoint;
       if (!parsed.aiApiEndpoint) parsed.aiApiEndpoint = DEFAULT_CONFIG.aiApiEndpoint;
+      if (!parsed.photoSessionEndpoint) parsed.photoSessionEndpoint = DEFAULT_CONFIG.photoSessionEndpoint;
       CONFIG = parsed;
       priceSearchTerm = '';
       document.getElementById('priceSearch').value = '';

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Фото пристрою — Re-Newt Trade-In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#059B3D; --purple-dark:#007D1F; --purple-light:rgba(5,155,61,.12);
+    --bg:#F6F6F6; --card:#ffffff; --text:#262626; --muted:#656565; --border:#E5E5E5; --bad:#EB1010;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Montserrat",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--text);padding:20px 14px 50px;}
+  .wrap{max-width:480px;margin:0 auto;}
+  h1{font-size:19px;margin:0 0 6px;font-weight:700;}
+  p.desc{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 18px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:16px;}
+  .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .photo-slot{
+    border:1.5px dashed var(--border);border-radius:10px;padding:8px;text-align:center;cursor:pointer;
+    background:#fafafa;position:relative;
+  }
+  .photo-slot.filled{border-style:solid;border-color:var(--purple);}
+  .photo-slot input{display:none;}
+  .photo-slot .thumb{width:100%;height:90px;object-fit:cover;border-radius:6px;display:block;margin-bottom:6px;}
+  .photo-slot .placeholder{height:90px;display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--muted);margin-bottom:6px;}
+  .photo-slot .zone-label{font-size:11.5px;color:var(--muted);line-height:1.3;}
+  .photo-slot.filled .zone-label{color:var(--purple-dark);font-weight:600;}
+  button.primary{
+    width:100%;appearance:none;border:none;border-radius:12px;background:var(--purple);color:#fff;
+    font-family:inherit;font-weight:700;font-size:15px;padding:14px;cursor:pointer;
+  }
+  button.primary:disabled{opacity:.5;cursor:not-allowed;}
+  .status{margin-top:14px;font-size:13px;color:var(--muted);text-align:center;line-height:1.5;}
+  .status.err{color:var(--bad);}
+  .success-screen{text-align:center;padding:30px 10px;}
+  .success-screen .big{font-size:44px;margin-bottom:10px;}
+  .success-screen h2{font-size:18px;margin:0 0 8px;}
+  .success-screen p{font-size:13.5px;color:var(--muted);line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Фото для перевірки стану пристрою</h1>
+  <p class="desc">Сфотографуйте екран, задню панель і чотири торці. Фото автоматично проаналізує AI, і результат зʼявиться на екрані менеджера.</p>
+
+  <div class="card" id="uploadCard">
+    <div class="photo-grid" id="photoGrid"></div>
+    <button type="button" class="primary" id="submitBtn" disabled>Надіслати фото</button>
+    <div class="status" id="statusNote"></div>
+  </div>
+
+  <div class="card success-screen" id="successCard" hidden>
+    <div class="big">✅</div>
+    <h2>Фото надіслано</h2>
+    <p>Результат перевірки вже зʼявляється на екрані менеджера. Це вікно можна закрити.</p>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const SESSION = params.get('session');
+
+const PHOTO_ZONES = [
+  {key:'front', label:'Екран (фронтальна панель)'},
+  {key:'back', label:'Задня панель'},
+  {key:'top', label:'Верхній торець'},
+  {key:'bottom', label:'Нижній торець'},
+  {key:'left', label:'Лівий торець'},
+  {key:'right', label:'Правий торець'},
+];
+
+// Same visual factor tiers as the calculator's DEFAULT_CONFIG (screen/display/body).
+// This page runs on a different device than the desktop admin panel, so it can't
+// read any locally-customized tiers from localStorage — it uses the defaults.
+const FACTORS = {
+  screen: { label:"Екран", tiers:[
+    {label:"Цілком відсутні будь-які сліди експлуатації", hint:"Мікроподряпини не допускаються"},
+    {label:"Є пара дрібних подряпин", hint:"Не більше трьох дрібних подряпин, видимих при хорошому освітленні під певним кутом"},
+    {label:"Дрібні подряпини, що покривають не більше 50% дисплея", hint:"Помітні при хорошому освітленні під певним кутом, не чіпляються нігтем"},
+    {label:"Глибокі та численні подряпини", hint:"Глибокі — визначаються на дотик; численні — покривають понад 50%"},
+    {label:"Сколи, тріщини, відшарування", hint:""},
+  ]},
+  display: { label:"Дефекти зображення", tiers:[
+    {label:"Ідеальне зображення без дефектів", hint:""},
+    {label:"Незначні засвіти", hint:"Помітні лише на однотонному тлі"},
+    {label:"Смуги та плями, що перекривають зображення", hint:""},
+  ]},
+  body: { label:"Корпус", tiers:[
+    {label:"Цілком відсутні будь-які сліди експлуатації", hint:"Мікроподряпини не допускаються"},
+    {label:"Є пара дрібних подряпин", hint:"Не більше 3 видимих дрібних подряпин на корпусі"},
+    {label:"Дрібні подряпини, точкові сколи та незначні потертості", hint:"Покривають не більше 50% корпусу"},
+    {label:"Глибокі подряпини, сколи, вм'ятини та інші сліди ударів", hint:"Плями, тріщини до 5мм, відшарування, численні подряпини (понад 50% корпусу)"},
+    {label:"Розбитий або деформований", hint:""},
+  ]},
+};
+
+const photos = {};
+
+function renderGrid(){
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = '';
+  PHOTO_ZONES.forEach(z => {
+    const slot = document.createElement('label');
+    const existing = photos[z.key];
+    slot.className = 'photo-slot' + (existing ? ' filled' : '');
+    slot.innerHTML = `
+      <input type="file" accept="image/*" capture="environment">
+      ${existing ? `<img class="thumb" src="${existing.previewUrl}">` : `<div class="placeholder">📷</div>`}
+      <div class="zone-label">${z.label}</div>
+    `;
+    slot.querySelector('input').addEventListener('change', (e) => handleSelect(z.key, e.target.files[0]));
+    grid.appendChild(slot);
+  });
+  document.getElementById('submitBtn').disabled = Object.keys(photos).length === 0;
+}
+
+function compressImageFile(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const maxDim = 1024;
+        let {width, height} = img;
+        if (width > maxDim || height > maxDim){
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+        resolve({ mediaType: 'image/jpeg', data: dataUrl.split(',')[1], previewUrl: dataUrl });
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleSelect(zoneKey, file){
+  if (!file) return;
+  try{
+    photos[zoneKey] = await compressImageFile(file);
+    renderGrid();
+  }catch(e){
+    document.getElementById('statusNote').textContent = 'Не вдалося обробити фото: ' + e.message;
+    document.getElementById('statusNote').className = 'status err';
+  }
+}
+
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const note = document.getElementById('statusNote');
+  const btn = document.getElementById('submitBtn');
+  if (!SESSION){
+    note.textContent = 'Немає ідентифікатора сесії — відскануйте QR ще раз.';
+    note.className = 'status err';
+    return;
+  }
+  btn.disabled = true;
+  note.className = 'status';
+  note.textContent = 'Аналізуємо фото…';
+
+  const photoList = PHOTO_ZONES
+    .filter(z => photos[z.key])
+    .map(z => ({ zone: z.label, mediaType: photos[z.key].mediaType, data: photos[z.key].data }));
+
+  try{
+    const analyzeRes = await fetch('/api/analyze-photos', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ photos: photoList, factors: FACTORS })
+    });
+    const analyzeData = await analyzeRes.json();
+    if (!analyzeRes.ok || !analyzeData.result){
+      note.textContent = 'Помилка перевірки: ' + (analyzeData.error || analyzeRes.status);
+      note.className = 'status err';
+      btn.disabled = false;
+      return;
+    }
+
+    const relayRes = await fetch('/api/photo-session', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ session: SESSION, result: analyzeData.result })
+    });
+    if (!relayRes.ok){
+      note.textContent = 'Аналіз готовий, але не вдалося передати його на екран менеджера. Спробуйте ще раз.';
+      note.className = 'status err';
+      btn.disabled = false;
+      return;
+    }
+
+    document.getElementById('uploadCard').hidden = true;
+    document.getElementById('successCard').hidden = false;
+  }catch(e){
+    note.textContent = 'Помилка звʼязку із сервером: ' + e.message;
+    note.className = 'status err';
+    btn.disabled = false;
+  }
+});
+
+renderGrid();
+if (!SESSION){
+  document.getElementById('statusNote').textContent = 'Немає ідентифікатора сесії в посиланні — відкрийте цю сторінку через QR-код на екрані менеджера.';
+  document.getElementById('statusNote').className = 'status err';
+}
+</script>
+</body>
+</html>
