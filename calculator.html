@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Калькулятор викупу смартфонів (Trade-In)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --purple:#059B3D;
+    --purple-dark:#007D1F;
+    --purple-light:rgba(5,155,61,.12);
+    --bg:#F6F6F6;
+    --card:#ffffff;
+    --text:#262626;
+    --muted:#656565;
+    --border:#E5E5E5;
+    --good:#059B3D;
+    --bad:#EB1010;
+    --yellow:#FF9D00;
+    --blue:#2320C5;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Montserrat",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+  .brandbar{
+    display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);
+    border-radius:16px;padding:14px 20px;margin-bottom:20px;
+  }
+  .brandbar img{height:28px;display:block;}
+  header{margin-bottom:20px;}
+  h1{font-size:22px;margin:0 0 6px;font-weight:700;}
+  .tabs{display:flex;gap:8px;margin-top:20px;}
+  .tab-btn{
+    appearance:none;border:1.5px solid var(--border);background:#fff;padding:10px 20px;font-size:14px;font-weight:600;
+    color:var(--muted);cursor:pointer;border-radius:10px;transition:all .15s;
+  }
+  .tab-btn:hover{border-color:var(--purple);}
+  .tab-btn.active{color:#fff;background:var(--purple);border-color:var(--purple);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:20px;margin-top:20px;}
+  @media (max-width: 860px){.grid{grid-template-columns:1fr;}}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:20px 22px;
+  }
+  .card h2{font-size:15px;margin:0 0 14px;color:var(--purple-dark);}
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  label.field-label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;}
+  select, input[type="text"], input[type="number"]{
+    width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;
+    font-size:14px;background:#fff;color:var(--text);
+    font-family:inherit;
+  }
+  select{
+    appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;
+  }
+  select:focus, input:focus{outline:none;border-color:var(--purple);}
+  .opt-group{display:flex;flex-direction:column;gap:8px;}
+  .opt{
+    display:flex;align-items:flex-start;gap:10px;border:1.5px solid var(--border);
+    border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s,background .15s;
+  }
+  .opt:hover{border-color:var(--purple);}
+  .opt.selected{border-color:var(--purple);background:var(--purple-light);}
+  .opt input{margin-top:3px;accent-color:var(--purple);flex:none;}
+  .opt-text{font-size:13.5px;line-height:1.4;}
+  .opt-text .hint{display:block;color:var(--muted);font-size:12px;margin-top:2px;}
+  .price-card{
+    position:sticky;top:16px;background:linear-gradient(160deg,var(--purple) 0%, var(--purple-dark) 100%);
+    color:#fff;border-radius:16px;padding:22px;
+  }
+  .price-card .device{font-size:13px;opacity:.85;margin-bottom:4px;}
+  .price-card .amount{font-size:38px;font-weight:800;letter-spacing:-0.5px;}
+  .price-card .base{font-size:13px;opacity:.85;margin-top:4px;}
+  .price-card .base s{opacity:.75;}
+  .breakdown{margin-top:16px;border-top:1px solid rgba(255,255,255,.25);padding-top:14px;}
+  .breakdown-row{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;opacity:.85;}
+  .breakdown-row.active{opacity:1;font-weight:700;}
+  .breakdown-row .pct.neg{color:#ffe1a3;}
+  .breakdown-row .pct.zero{color:rgba(255,255,255,.65);}
+  .total-row{
+    display:flex;justify-content:space-between;font-size:13.5px;font-weight:800;
+    padding-top:10px;margin-top:6px;border-top:1px solid rgba(255,255,255,.25);
+  }
+  .total-note{
+    margin-top:14px;background:rgba(255,255,255,.14);border-radius:10px;padding:10px 12px;
+    font-size:12.5px;line-height:1.5;
+  }
+  .empty-note{font-size:13px;opacity:.9;line-height:1.5;}
+  .no-effect-badge{
+    display:inline-block;font-size:10.5px;font-weight:700;color:var(--good);
+    background:var(--purple-light);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle;
+  }
+
+  /* ---- scenarios tab ---- */
+  .toolbar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px;
+    background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;
+  }
+  .btn{
+    appearance:none;border:1.5px solid var(--border);background:#fff;color:var(--text);
+    padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;
+    font-family:inherit;
+  }
+  .btn:hover{border-color:var(--purple);}
+  .btn-primary{background:var(--purple);border-color:var(--purple);color:#fff;}
+  .btn-primary:hover{background:var(--purple-dark);border-color:var(--purple-dark);}
+  .btn-danger{color:var(--bad);}
+  .btn-danger:hover{border-color:var(--bad);}
+  .status-pill{
+    font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;margin-left:auto;
+  }
+  .status-pill.saved{background:var(--purple-light);color:var(--good);}
+  .status-pill.dirty{background:rgba(255,157,0,.15);color:#a05a00;}
+  .file-input-hidden{display:none;}
+
+  .factors-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  @media (max-width: 860px){.factors-grid{grid-template-columns:1fr;}}
+  .factor-tier{
+    display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);
+  }
+  .factor-tier:last-child{border-bottom:none;}
+  .factor-tier .tier-label{flex:1;font-size:12.5px;line-height:1.4;}
+  .factor-tier .pct-input-wrap{display:flex;align-items:center;gap:4px;flex:none;}
+  .factor-tier input[type="number"]{width:64px;padding:6px 8px;text-align:right;font-size:13px;}
+
+  .search-row{display:flex;gap:8px;margin-bottom:12px;}
+  .search-row input{flex:1;}
+  table.price-table{width:100%;border-collapse:collapse;font-size:13px;}
+  table.price-table th{
+    text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);
+    padding:6px 8px;border-bottom:1.5px solid var(--border);position:sticky;top:0;background:var(--card);
+  }
+  table.price-table td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  table.price-table td.model-cell{font-weight:600;}
+  table.price-table input[type="number"]{padding:6px 8px;font-size:13px;text-align:right;}
+  table.price-table input[type="text"]{padding:6px 8px;font-size:13px;}
+  .price-table-scroll{max-height:520px;overflow:auto;border:1px solid var(--border);border-radius:10px;}
+  .row-del{
+    appearance:none;border:none;background:none;color:var(--bad);cursor:pointer;font-size:15px;
+    padding:2px 6px;border-radius:6px;line-height:1;
+  }
+  .row-del:hover{background:#fdeaea;}
+  .add-row-form{
+    display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);
+    align-items:center;
+  }
+  .add-row-form input{width:auto;flex:1;min-width:120px;}
+  .add-row-form input[name="newPrice"]{max-width:120px;}
+  .section-title{font-size:15px;color:var(--purple-dark);margin:0 0 6px;}
+  .section-desc{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5;}
+
+  /* ---- wizard steps ---- */
+  .steps-nav{display:flex;gap:6px;margin:16px 0 4px;}
+  .steps-nav .seg{flex:1;height:3px;border-radius:2px;background:var(--border);overflow:hidden;}
+  .steps-nav .seg .fill{height:100%;width:0;background:var(--purple);transition:width .3s;}
+  .steps-nav .seg.done .fill{width:100%;}
+  .steps-labels{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:18px;}
+  .steps-labels span.on{color:var(--purple-dark);font-weight:700;}
+  .step-panel{display:none;}
+  .step-panel.active{display:block;}
+  .continue-btn{
+    width:100%;margin-top:16px;appearance:none;border:none;border-radius:12px;
+    background:#fff;color:var(--purple-dark);font-family:inherit;font-weight:700;font-size:14px;
+    padding:13px;cursor:pointer;
+  }
+  .continue-btn:hover{background:#f2f2f2;}
+  .continue-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .link-btn{
+    appearance:none;border:none;background:none;color:rgba(255,255,255,.8);font-family:inherit;
+    font-size:12.5px;text-decoration:underline;cursor:pointer;padding:8px 0 0;display:block;margin:0 auto;
+  }
+  .back-btn{
+    appearance:none;border:1.5px solid var(--border);background:#fff;color:var(--muted);
+    font-family:inherit;font-weight:600;font-size:13px;padding:9px 16px;border-radius:10px;cursor:pointer;margin-bottom:16px;
+  }
+  .back-btn:hover{border-color:var(--purple);color:var(--purple-dark);}
+
+  /* ---- testing step ---- */
+  .imei-row{display:flex;gap:10px;}
+  .imei-row input{flex:1;}
+  .qr-box{display:flex;flex-direction:column;align-items:center;padding:18px 0 4px;}
+  #qrcodeCalc{background:#fff;padding:12px;border-radius:12px;border:1px solid var(--border);}
+  .waiting-pill{
+    display:flex;align-items:center;gap:9px;margin-top:16px;padding:11px 14px;
+    background:#FFF8EC;border:1px solid #FFE3B0;border-radius:10px;font-size:13px;color:#8a5a00;
+  }
+  .waiting-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--yellow);flex:none;
+    animation:pulseDot 1.5s infinite;}
+  @keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(255,157,0,.5);}70%{box-shadow:0 0 0 7px rgba(255,157,0,0);}100%{box-shadow:0 0 0 0 rgba(255,157,0,0);}}
+  .test-mini-list{margin-top:14px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .test-mini-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:12.5px;border-bottom:1px solid var(--border);}
+  .test-mini-row:last-child{border-bottom:none;}
+  .test-mini-row .st{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;}
+  .st.pending{background:#F0F0F0;color:var(--muted);}
+  .st.pass{background:var(--purple-light);color:var(--good);}
+  .st.fail{background:#FDEAEA;color:var(--bad);}
+
+  /* ---- result step ---- */
+  .defect-row{
+    display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);
+  }
+  .defect-row:last-child{border-bottom:none;}
+  .defect-row input[type=checkbox]{margin-top:3px;accent-color:var(--purple);flex:none;}
+  .defect-info{flex:1;}
+  .defect-info .name{font-size:13.5px;font-weight:600;}
+  .defect-info .sub{font-size:12px;color:var(--muted);margin-top:1px;}
+  .defect-pct{font-size:13px;font-weight:700;color:var(--bad);flex:none;}
+  .defect-pct.off{color:var(--muted);text-decoration:line-through;}
+  .passed-chip-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .passed-chip{font-size:11px;background:var(--purple-light);color:var(--good);padding:3px 9px;border-radius:999px;}
+  .final-price-card{
+    background:linear-gradient(160deg,var(--purple) 0%, var(--purple-dark) 100%);color:#fff;
+    border-radius:16px;padding:22px;margin-bottom:16px;
+  }
+
+  /* ---- admin: test defects table ---- */
+  .api-field{margin-bottom:16px;}
+  .api-field input{width:100%;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="https://renewt.pl/asset/template2025/img/logo-5.svg" alt="Renewt">
+  </div>
+
+  <header>
+    <h1>Калькулятор викупу смартфонів</h1>
+  </header>
+
+  <div class="tabs">
+    <button type="button" class="tab-btn active" data-tab="calc">Калькулятор</button>
+    <button type="button" class="tab-btn" data-tab="scenarios">Ціни та сценарії</button>
+  </div>
+
+  <!-- ================= CALCULATOR TAB ================= -->
+  <div class="tab-panel active" id="tab-calc">
+
+    <div class="steps-nav">
+      <div class="seg" id="seg1"><div class="fill"></div></div>
+      <div class="seg" id="seg2"><div class="fill"></div></div>
+      <div class="seg" id="seg3"><div class="fill"></div></div>
+    </div>
+    <div class="steps-labels">
+      <span id="segLabel1">Попередня оцінка</span>
+      <span id="segLabel2">Тестування</span>
+      <span id="segLabel3">Підсумкова оцінка</span>
+    </div>
+
+    <!-- ---- STEP 1: preliminary calculator ---- -->
+    <div class="step-panel active" id="step1Prelim">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>Пристрій</h2>
+          <div class="field">
+            <label class="field-label">Бренд</label>
+            <select id="brandSelect"></select>
+          </div>
+          <div class="field">
+            <label class="field-label">Модель</label>
+            <select id="modelSelect"></select>
+          </div>
+          <div class="field">
+            <label class="field-label">Пам'ять</label>
+            <select id="storageSelect"></select>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2>Чи всі функції працюють справно?</h2>
+          <div class="opt-group" id="functionalGroup"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2>Пристрій працює з локальними SIM-картками?</h2>
+          <div class="opt-group" id="simGroup"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2>Стан акумулятора</h2>
+          <div class="opt-group" id="batteryGroup"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2>У якому стані екран?</h2>
+          <div class="opt-group" id="screenGroup"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2>Чи є дефекти зображення?</h2>
+          <div class="opt-group" id="displayGroup"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2>У якому стані корпус?</h2>
+          <div class="opt-group" id="bodyGroup"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2>Комплектація <span class="no-effect-badge">не впливає на ціну</span></h2>
+          <div class="opt-group" id="completenessGroup"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="price-card" id="priceCard">
+          <div class="device" id="deviceLabel">—</div>
+          <div class="amount" id="amountLabel">0 грн</div>
+          <div class="base" id="baseLabel"></div>
+          <div class="breakdown" id="breakdown"></div>
+          <div class="total-note" id="totalNote"></div>
+          <button type="button" class="continue-btn" id="toTestingBtn">Продовжити до тестування →</button>
+        </div>
+      </div>
+    </div>
+    </div>
+    <!-- /step1Prelim -->
+
+    <!-- ---- STEP 2: testing ---- -->
+    <div class="step-panel" id="step2Testing">
+      <button type="button" class="back-btn" id="backToStep1Btn">← Назад до попередньої оцінки</button>
+      <div class="grid">
+        <div>
+          <div class="card">
+            <h2>IMEI пристрою</h2>
+            <div class="field">
+              <label class="field-label">Введіть IMEI (або *#06# на телефоні)</label>
+              <div class="imei-row">
+                <input type="text" id="imeiInputCalc" inputmode="numeric" maxlength="17" placeholder="359123456789012">
+              </div>
+              <div class="total-note" id="imeiHintCalc" style="margin-top:8px;background:#F6F6F6;color:var(--muted);"></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px;">
+            <h2>Скануйте QR і пройдіть тест</h2>
+            <p class="section-desc">Відскануйте QR-код камерою телефона, встановіть додаток діагностики M360 і пройдіть тест. Ця сторінка сама оновиться, коли результат надійде.</p>
+            <div class="qr-box"><div id="qrcodeCalc"></div></div>
+            <div class="waiting-pill" id="waitingPillCalc" hidden><span class="dot"></span><span id="waitingTextCalc">Очікуємо результати діагностики…</span></div>
+            <div class="test-mini-list" id="testMiniList" hidden></div>
+          </div>
+        </div>
+        <div>
+          <div class="price-card">
+            <div class="device">Попередня оцінка</div>
+            <div class="amount" id="prelimCarryAmount">0 грн</div>
+            <div class="total-note" style="margin-top:14px;">Ця сума буде скоригована за результатами тестування на наступному кроці.</div>
+            <button type="button" class="continue-btn" id="skipTestingBtn" disabled>Перейти до підсумку →</button>
+            <button type="button" class="link-btn" id="skipTestingManualBtn">Пропустити тестування вручну</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /step2Testing -->
+
+    <!-- ---- STEP 3: final result ---- -->
+    <div class="step-panel" id="step3Result">
+      <button type="button" class="back-btn" id="backToStep2Btn">← Назад до тестування</button>
+      <div class="grid">
+        <div>
+          <div class="card">
+            <h2>Дефекти, знайдені під час тестування</h2>
+            <p class="section-desc">Зніміть галочку біля дефекту, якщо він не підтвердився при повторній перевірці — знижка за нього буде прибрана з підсумкової ціни.</p>
+            <div id="defectRows"></div>
+            <div class="empty-note" id="noDefectsNote" hidden>Тестування не виявило додаткових дефектів понад ті, що вказані в попередній оцінці.</div>
+          </div>
+          <div class="card" style="margin-top:16px;" id="passedCard" hidden>
+            <h2>Пройдені тести</h2>
+            <div class="passed-chip-wrap" id="passedChips"></div>
+          </div>
+        </div>
+        <div>
+          <div class="final-price-card">
+            <div class="device" id="finalDeviceLabel">—</div>
+            <div class="amount" id="finalAmountLabel">0 грн</div>
+            <div class="base" id="finalBaseLabel"></div>
+            <div class="breakdown" id="finalBreakdown"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /step3Result -->
+
+  </div>
+
+  <!-- ================= SCENARIOS / ADMIN TAB ================= -->
+  <div class="tab-panel" id="tab-scenarios">
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" id="saveBtn">💾 Зберегти зміни</button>
+      <button type="button" class="btn btn-danger" id="resetBtn">Скинути до типових значень</button>
+      <button type="button" class="btn" id="exportBtn">Експорт у JSON</button>
+      <button type="button" class="btn" id="importBtn">Імпорт з JSON</button>
+      <input type="file" id="importFile" class="file-input-hidden" accept="application/json">
+      <span class="status-pill saved" id="statusPill">Збережено</span>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h2 class="section-title">Логіка дефектів (коефіцієнти)</h2>
+      <p class="section-desc">Для кожної відповіді вкажіть відсоток знижки від максимальної ціни (0% = не впливає на ціну). Відсотки з усіх обраних відповідей підсумовуються — це і є загальна знижка від максимальної ціни (не більше 100%).</p>
+      <div class="factors-grid" id="factorsGrid"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h2 class="section-title">Підключення до тестування (M360)</h2>
+      <p class="section-desc">Адреса вашої серверної функції-проксі до M360 (наприклад, вашого Vercel-деплою). Саме сюди звертається сторінка на кроці «Тестування».</p>
+      <div class="api-field">
+        <label class="field-label">API endpoint</label>
+        <input type="text" id="apiEndpointInput" placeholder="https://your-project.vercel.app/api/diagnostics-status">
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h2 class="section-title">Знижки за провалені тести (M360)</h2>
+      <p class="section-desc">Для кожного тесту, який M360 позначив як «Failed», вкажіть відсоток додаткової знижки від підсумкової ціни попереднього кроку. Знижки за всіма провалеными тестами підсумовуються так само, як і в блоці вище. Значення за замовчуванням — орієнтовні, налаштуйте під власну політику.</p>
+      <div class="search-row">
+        <input type="text" id="defectSearch" placeholder="Пошук тесту…">
+      </div>
+      <div class="price-table-scroll" style="max-height:420px;">
+        <table class="price-table">
+          <thead><tr><th>Тест (testId)</th><th>Назва</th><th>Знижка, %</th></tr></thead>
+          <tbody id="defectTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Базові ціни (модель × пам'ять)</h2>
+      <p class="section-desc">Максимальна ціна викупу для кожної моделі та обсягу пам'яті. Можна редагувати існуючі значення, видаляти рядки або додавати нові моделі/обсяги.</p>
+      <div class="search-row">
+        <input type="text" id="priceSearch" placeholder="Пошук за назвою моделі…">
+      </div>
+      <div class="price-table-scroll">
+        <table class="price-table">
+          <thead><tr><th>Модель</th><th>Пам'ять</th><th>Ціна, грн</th><th></th></tr></thead>
+          <tbody id="priceTableBody"></tbody>
+        </table>
+      </div>
+      <form class="add-row-form" id="addRowForm">
+        <input type="text" name="newModel" list="modelDatalist" placeholder="Модель (напр. iPhone 13)" required>
+        <datalist id="modelDatalist"></datalist>
+        <input type="text" name="newStorage" placeholder="Пам'ять (напр. 128 GB)" required>
+        <input type="number" name="newPrice" placeholder="Ціна" min="0" step="1" required>
+        <button type="submit" class="btn btn-primary">+ Додати рядок</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DEFAULT CONFIG (baked in at generation time; used as fallback
+// and as the target of "Скинути до типових значень")
+// ============================================================
+const DEFAULT_CONFIG = {
+  prices: {
+"APPLE iPhone 11": {"64 GB":4000,"128 GB":4700,"256 GB":5300},
+"APPLE iPhone 11 Pro": {"64 GB":4500,"256 GB":5500,"512 GB":6000},
+"APPLE iPhone 11 Pro Max": {"64 GB":4800,"256 GB":6000,"512 GB":6600},
+"APPLE iPhone 12": {"64 GB":5400,"128 GB":6700,"256 GB":7200},
+"APPLE iPhone 12 Pro": {"128 GB":8200,"256 GB":9200,"512 GB":9800},
+"APPLE iPhone 12 Pro Max": {"128 GB":8800,"256 GB":10200,"512 GB":10900},
+"APPLE iPhone 12 mini": {"64 GB":3300,"128 GB":4200,"256 GB":4500},
+"APPLE iPhone 13": {"128 GB":9200,"256 GB":10500,"512 GB":11600},
+"APPLE iPhone 13 Pro": {"128 GB":11900,"256 GB":13100,"512 GB":14200,"1 TB":15400},
+"APPLE iPhone 13 Pro Max": {"128 GB":13300,"256 GB":15000,"512 GB":16200,"1 TB":17600},
+"APPLE iPhone 13 mini": {"128 GB":7200,"256 GB":7800,"512 GB":8400},
+"APPLE iPhone 14": {"128 GB":10900,"256 GB":12700,"512 GB":14100},
+"APPLE iPhone 14 Plus": {"128 GB":11600,"256 GB":13500,"512 GB":15000},
+"APPLE iPhone 14 Plus eSIM": {"128 GB":11020,"256 GB":12825,"512 GB":14250},
+"APPLE iPhone 14 Pro": {"128 GB":15800,"256 GB":17800,"512 GB":19600,"1 TB":21600},
+"APPLE iPhone 14 Pro Max": {"128 GB":17400,"256 GB":19000,"512 GB":20900,"1 TB":23100},
+"APPLE iPhone 14 Pro Max eSIM": {"128 GB":16530,"256 GB":18050,"512 GB":19855,"1 TB":21945},
+"APPLE iPhone 14 Pro eSIM": {"128 GB":15010,"256 GB":16910,"512 GB":18620,"1 TB":20520},
+"APPLE iPhone 14 eSIM": {"128 GB":10355,"256 GB":12065,"512 GB":13395},
+"APPLE iPhone 15": {"128 GB":14900,"256 GB":17800,"512 GB":20500},
+"APPLE iPhone 15 Plus": {"128 GB":16100,"256 GB":17800,"512 GB":20500},
+"APPLE iPhone 15 Plus eSIM": {"128 GB":15295,"256 GB":16910,"512 GB":19475},
+"APPLE iPhone 15 Pro": {"128 GB":20000,"256 GB":22400,"512 GB":24700,"1 TB":27300},
+"APPLE iPhone 15 Pro Max": {"256 GB":23400,"512 GB":24800,"1 TB":27400},
+"APPLE iPhone 15 Pro Max eSIM": {"256 GB":22230,"512 GB":23560,"1 TB":26030},
+"APPLE iPhone 15 Pro eSIM": {"128 GB":19000,"256 GB":21280,"512 GB":23465,"1 TB":25935},
+"APPLE iPhone 15 eSIM": {"128 GB":14155,"256 GB":16910,"512 GB":19475},
+"APPLE iPhone 16": {"128 GB":21000,"256 GB":22800,"512 GB":26300},
+"APPLE iPhone 16 Plus": {"128 GB":21800,"256 GB":24000,"512 GB":27600},
+"APPLE iPhone 16 Plus eSIM": {"128 GB":20710,"256 GB":22800,"512 GB":26220},
+"APPLE iPhone 16 Pro": {"128 GB":26800,"256 GB":30600,"512 GB":33400,"1 TB":38600},
+"APPLE iPhone 16 Pro Max": {"256 GB":31400,"512 GB":33700,"1 TB":37800},
+"APPLE iPhone 16 Pro Max eSIM": {"256 GB":29830,"512 GB":32015,"1 TB":35910},
+"APPLE iPhone 16 Pro eSIM": {"128 GB":25460,"256 GB":29070,"512 GB":31730,"1 TB":36670},
+"APPLE iPhone 16 eSIM": {"128 GB":19950,"256 GB":21660,"512 GB":24985},
+"APPLE iPhone 16e": {"128 GB":14400,"256 GB":16800,"512 GB":19500},
+"APPLE iPhone 16e eSIM": {"128 GB":13680,"256 GB":15960,"512 GB":18525},
+"APPLE iPhone 17": {"256 GB":24900,"512 GB":30600},
+"APPLE iPhone 17 Pro": {"256 GB":36200,"512 GB":43100,"1 TB":50000},
+"APPLE iPhone 17 Pro Max": {"256 GB":40000,"512 GB":46300,"1 TB":53800,"2 TB":60100},
+"APPLE iPhone 17 Pro Max eSIM": {"256 GB":38000,"512 GB":43985,"1 TB":51110,"2 TB":57095},
+"APPLE iPhone 17 Pro eSIM": {"256 GB":34390,"512 GB":40945,"1 TB":47500},
+"APPLE iPhone 17 eSIM": {"256 GB":23655,"512 GB":29070},
+"APPLE iPhone 17e": {"256 GB":19300,"512 GB":23700},
+"APPLE iPhone 17e eSIM": {"256 GB":18335,"512 GB":22515},
+"APPLE iPhone Air": {"256 GB":25600,"512 GB":31200,"1 TB":35000},
+"APPLE iPhone SE Gen.2": {"64 GB":2000,"128 GB":2400,"256 GB":2700},
+"APPLE iPhone SE Gen.3": {"64 GB":3500,"128 GB":4100,"256 GB":4700},
+"APPLE iPhone X": {"64 GB":2000,"256 GB":2500},
+"APPLE iPhone Xr": {"64 GB":2400,"128 GB":2900,"256 GB":3200},
+"APPLE iPhone Xs": {"64 GB":2300,"256 GB":2800,"512 GB":3200},
+"APPLE iPhone Xs Max": {"64 GB":3000,"256 GB":3600,"512 GB":4000},
+"SAMSUNG Galaxy A01 (A015F)": {"16 GB":320},
+"SAMSUNG Galaxy A01 Core (A013F)": {"16 GB":360},
+"SAMSUNG Galaxy A02 (A022G)": {"32 GB":550},
+"SAMSUNG Galaxy A02s (A025F)": {"32 GB":670},
+"SAMSUNG Galaxy A03 (A035F)": {"32 GB":800,"64 GB":920},
+"SAMSUNG Galaxy A03 Core (A032F)": {"32 GB":610},
+"SAMSUNG Galaxy A03s (A037F)": {"32 GB":830,"64 GB":990},
+"SAMSUNG Galaxy A04 (A045F)": {"32 GB":790,"64 GB":920},
+"SAMSUNG Galaxy A04e (A042F)": {"32 GB":700,"64 GB":870,"128 GB":1040},
+"SAMSUNG Galaxy A04s (A047F)": {"32 GB":990,"64 GB":1160},
+"SAMSUNG Galaxy A05 (A055F)": {"64 GB":990,"128 GB":1110},
+"SAMSUNG Galaxy A05s (A057G)": {"64 GB":1350,"128 GB":1540},
+"SAMSUNG Galaxy A06 (A065F)": {"64 GB":990,"128 GB":1170},
+"SAMSUNG Galaxy A07 (A075F)": {"64 GB":1070,"128 GB":1270},
+"SAMSUNG Galaxy A11 (1 SIM) (A115F)": {"32 GB":530},
+"SAMSUNG Galaxy A11 (A115F)": {"32 GB":670},
+"SAMSUNG Galaxy A12 (1 SIM) (A125F)": {"32 GB":540},
+"SAMSUNG Galaxy A12 (A125F)": {"32 GB":700,"64 GB":870,"128 GB":1040},
+"SAMSUNG Galaxy A12 2021 (A127F)": {"32 GB":890,"64 GB":1010,"128 GB":1190},
+"SAMSUNG Galaxy A13 (A135F)": {"32 GB":1080,"64 GB":1270,"128 GB":1480},
+"SAMSUNG Galaxy A13 5G (A136B)": {"64 GB":1289},
+"SAMSUNG Galaxy A13 New Edition (A137F)": {"64 GB":1289},
+"SAMSUNG Galaxy A14 (A145F)": {"64 GB":1630,"128 GB":1890},
+"SAMSUNG Galaxy A14 5G (A146B)": {"64 GB":1659},
+"SAMSUNG Galaxy A15 (A155F)": {"128 GB":2190,"256 GB":2600},
+"SAMSUNG Galaxy A15 5G (A156B)": {"128 GB":2229},
+"SAMSUNG Galaxy A16 (A165F)": {"128 GB":2170,"256 GB":2520},
+"SAMSUNG Galaxy A16 5G (A166B)": {"128 GB":2209,"256 GB":2559},
+"SAMSUNG Galaxy A17 (A176B)": {"128 GB":2530,"256 GB":2880},
+"SAMSUNG Galaxy A17 4G (A175F)": {"128 GB":2600,"256 GB":3620},
+"SAMSUNG Galaxy A21s (A217F)": {"32 GB":990,"64 GB":1180,"128 GB":1350},
+"SAMSUNG Galaxy A22 (A225F)": {"64 GB":1120,"128 GB":1300},
+"SAMSUNG Galaxy A22 5G (A226B)": {"64 GB":792,"128 GB":1349},
+"SAMSUNG Galaxy A23 (1 SIM) (A235F)": {"128 GB":1480},
+"SAMSUNG Galaxy A23 (A235F)": {"64 GB":1510,"128 GB":1730},
+"SAMSUNG Galaxy A23 5G (A236B)": {"64 GB":2030,"128 GB":2279},
+"SAMSUNG Galaxy A24 (A245F)": {"128 GB":2600},
+"SAMSUNG Galaxy A25 5G (1 SIM) (A253Z)": {"64 GB":2376},
+"SAMSUNG Galaxy A25 5G (A256B)": {"128 GB":3400,"256 GB":3890},
+"SAMSUNG Galaxy A26 5G (A266B)": {"128 GB":3800,"256 GB":4260},
+"SAMSUNG Galaxy A31 (A315F)": {"64 GB":1010,"128 GB":1200},
+"SAMSUNG Galaxy A32 (A325F)": {"64 GB":1560,"128 GB":1800},
+"SAMSUNG Galaxy A32 5G (A326B)": {"64 GB":2100},
+"SAMSUNG Galaxy A33 (A336B)": {"128 GB":2390},
+"SAMSUNG Galaxy A34 (A346E)": {"128 GB":3130,"256 GB":3540},
+"SAMSUNG Galaxy A35 5G (A356B)": {"128 GB":4300,"256 GB":4790},
+"SAMSUNG Galaxy A36 5G (A366B)": {"128 GB":4840,"256 GB":5530},
+"SAMSUNG Galaxy A37 5G (A376B)": {"128 GB":5650,"256 GB":6281},
+"SAMSUNG Galaxy A41 (A415F)": {"64 GB":1290},
+"SAMSUNG Galaxy A51 (1 SIM) (A515F)": {"128 GB":1110},
+"SAMSUNG Galaxy A51 (A515F)": {"64 GB":1160,"128 GB":1330},
+"SAMSUNG Galaxy A52 (A525F)": {"128 GB":1980,"256 GB":2260},
+"SAMSUNG Galaxy A52s (A528B)": {"128 GB":2170,"256 GB":2490},
+"SAMSUNG Galaxy A53 (1 SIM) (A536E)": {"128 GB":2530},
+"SAMSUNG Galaxy A53 (A536E)": {"128 GB":2900,"256 GB":3250},
+"SAMSUNG Galaxy A54 (A546E)": {"128 GB":3900,"256 GB":4420},
+"SAMSUNG Galaxy A55 5G (A556B)": {"128 GB":5750,"256 GB":6420},
+"SAMSUNG Galaxy A56 5G (A566B)": {"128 GB":6300,"256 GB":7210},
+"SAMSUNG Galaxy A57 5G (A576B)": {"128 GB":7523,"256 GB":8250,"512 GB":9085},
+"SAMSUNG Galaxy A71 (A715F)": {"128 GB":2100},
+"SAMSUNG Galaxy A72 (A725F)": {"128 GB":2610,"256 GB":2950},
+"SAMSUNG Galaxy A73 (A736B)": {"128 GB":3440,"256 GB":3920},
+"SAMSUNG Galaxy Flip 4 (F721B)": {"128 GB":5447,"256 GB":6014,"512 GB":6795},
+"SAMSUNG Galaxy Flip 5 (F731B)": {"256 GB":7690,"512 GB":8750},
+"SAMSUNG Galaxy Flip 6 (F741B)": {"256 GB":10123,"512 GB":11161},
+"SAMSUNG Galaxy Flip 7 (F766B)": {"256 GB":17960,"512 GB":19640},
+"SAMSUNG Galaxy Flip 7 FE (F761B)": {"128 GB":13226,"256 GB":13878},
+"SAMSUNG Galaxy Fold (F900F)": {"512 GB":5725},
+"SAMSUNG Galaxy Fold 2 (F916B)": {"256 GB":6453},
+"SAMSUNG Galaxy Fold 4 (F936B)": {"256 GB":10219,"512 GB":11417},
+"SAMSUNG Galaxy Fold 5 (1 SIM) (F946B)": {"512 GB":12169},
+"SAMSUNG Galaxy Fold 5 (F946B)": {"256 GB":12331,"512 GB":14510,"1 TB":14303},
+"SAMSUNG Galaxy Fold 6 (F956B)": {"256 GB":19279,"512 GB":19569,"1 TB":23230},
+"SAMSUNG Galaxy Fold 7 (F966B)": {"256 GB":39590,"512 GB":43630,"1 TB":48370},
+"SAMSUNG Galaxy M11 (M115F)": {"32 GB":810},
+"SAMSUNG Galaxy M12 (M127F)": {"32 GB":920,"64 GB":1100,"128 GB":1229},
+"SAMSUNG Galaxy M13 (M135F)": {"64 GB":1100,"128 GB":1390},
+"SAMSUNG Galaxy M14 (M146B)": {"64 GB":1510,"128 GB":1730},
+"SAMSUNG Galaxy M15 5G (M156B)": {"128 GB":2090},
+"SAMSUNG Galaxy M21 (M215F)": {"64 GB":1040},
+"SAMSUNG Galaxy M22 (M225F)": {"128 GB":1270},
+"SAMSUNG Galaxy M23 (M236B)": {"64 GB":1300,"128 GB":1510},
+"SAMSUNG Galaxy M31 (M315F)": {"64 GB":1350,"128 GB":1560},
+"SAMSUNG Galaxy M31s (M317F)": {"128 GB":1690},
+"SAMSUNG Galaxy M32 (M325F)": {"128 GB":1510},
+"SAMSUNG Galaxy M33 (M336B)": {"128 GB":1850},
+"SAMSUNG Galaxy M34 5G (M346B)": {"128 GB":2670},
+"SAMSUNG Galaxy M35 5G (M356B)": {"128 GB":3250},
+"SAMSUNG Galaxy M51 (M515F)": {"128 GB":1690},
+"SAMSUNG Galaxy M52 (M526B)": {"128 GB":2090},
+"SAMSUNG Galaxy M53 (M536B)": {"128 GB":2730},
+"SAMSUNG Galaxy M54 (M546B)": {"128 GB":3360,"256 GB":3830},
+"SAMSUNG Galaxy M55 5G (M556B)": {"128 GB":4890,"256 GB":5360},
+"SAMSUNG Galaxy Note 20 (1 SIM) (N980F)": {"128 GB":3874,"256 GB":4398},
+"SAMSUNG Galaxy Note 20 (N980F)": {"256 GB":4666},
+"SAMSUNG Galaxy Note 20 Ultra 5G (1 SIM) (N985F)": {"256 GB":6870},
+"SAMSUNG Galaxy Note 20 Ultra 5G (1 SIM) (N985U)": {"128 GB":6530},
+"SAMSUNG Galaxy Note 20 Ultra 5G (1 SIM) (N986B)": {"512 GB":8100},
+"SAMSUNG Galaxy Note 20 Ultra 5G (N985F)": {"256 GB":7266},
+"SAMSUNG Galaxy Note 20 Ultra 5G (N985U)": {"128 GB":6485},
+"SAMSUNG Galaxy Note 20 Ultra 5G (N986B)": {"512 GB":8047},
+"SAMSUNG Galaxy S20 (1 SIM) (G980F)": {"128 GB":3970},
+"SAMSUNG Galaxy S20 (G980F)": {"128 GB":4490},
+"SAMSUNG Galaxy S20 FE (1 SIM) (G780F)": {"128 GB":2880},
+"SAMSUNG Galaxy S20 FE (1 SIM) (G781V)": {"128 GB":2880},
+"SAMSUNG Galaxy S20 FE (G780F)": {"128 GB":3050,"256 GB":3400},
+"SAMSUNG Galaxy S20 FE 2021 (G780G)": {"128 GB":3290,"256 GB":3710},
+"SAMSUNG Galaxy S20 Plus (1 SIM) (G985F)": {"128 GB":4350},
+"SAMSUNG Galaxy S20 Plus (G985F)": {"128 GB":4920},
+"SAMSUNG Galaxy S20 Ultra (1 SIM) (G988B)": {"128 GB":4610,"512 GB":5800},
+"SAMSUNG Galaxy S20 Ultra (G988B)": {"128 GB":5210,"256 GB":5820,"512 GB":6540},
+"SAMSUNG Galaxy S21 (1 SIM) (G991B)": {"128 GB":3740,"256 GB":4220},
+"SAMSUNG Galaxy S21 (G991B)": {"128 GB":4250,"256 GB":4152},
+"SAMSUNG Galaxy S21 FE 5G (G990B)": {"128 GB":4850,"256 GB":5480},
+"SAMSUNG Galaxy S21 Plus (1 SIM) (G996B)": {"128 GB":5100,"256 GB":5680},
+"SAMSUNG Galaxy S21 Plus (G996B)": {"128 GB":5750,"256 GB":6420},
+"SAMSUNG Galaxy S21 Ultra (1 SIM) (G998B)": {"128 GB":6730,"256 GB":7480,"512 GB":8740},
+"SAMSUNG Galaxy S21 Ultra (G998B)": {"128 GB":7570,"256 GB":8410,"512 GB":9800},
+"SAMSUNG Galaxy S22 (1 SIM) (S901B)": {"128 GB":4930,"256 GB":5840},
+"SAMSUNG Galaxy S22 (S901B)": {"128 GB":5570,"256 GB":6580},
+"SAMSUNG Galaxy S22 Plus (1 SIM) (S906B)": {"128 GB":6150,"256 GB":7320},
+"SAMSUNG Galaxy S22 Plus (S906B)": {"128 GB":6920,"256 GB":8240},
+"SAMSUNG Galaxy S22 Ultra (1 SIM) (S908B)": {"128 GB":10220,"256 GB":10790,"512 GB":11950},
+"SAMSUNG Galaxy S22 Ultra (S908B)": {"128 GB":11460,"256 GB":12080,"512 GB":13370,"1 TB":14850},
+"SAMSUNG Galaxy S23 (1 SIM) (S911B)": {"128 GB":8350,"256 GB":9030,"512 GB":9649},
+"SAMSUNG Galaxy S23 (S911B)": {"128 GB":9370,"256 GB":10120,"512 GB":9649},
+"SAMSUNG Galaxy S23 FE (1 SIM) (S711B)": {"128 GB":6040,"256 GB":7200},
+"SAMSUNG Galaxy S23 FE (S711B)": {"128 GB":6810,"256 GB":8100},
+"SAMSUNG Galaxy S23 Plus (1 SIM) (S916B)": {"256 GB":9710,"512 GB":10720},
+"SAMSUNG Galaxy S23 Plus (S916B)": {"256 GB":10880,"512 GB":12000},
+"SAMSUNG Galaxy S23 Ultra (1 SIM) (S918B)": {"256 GB":13810,"512 GB":15530,"1 TB":17210},
+"SAMSUNG Galaxy S23 Ultra (S918B)": {"256 GB":15430,"512 GB":17350,"1 TB":17539},
+"SAMSUNG Galaxy S24 (1 SIM) (S921B)": {"128 GB":9509},
+"SAMSUNG Galaxy S24 (S921B)": {"128 GB":11370,"256 GB":12430},
+"SAMSUNG Galaxy S24 FE (S721B)": {"128 GB":9170,"256 GB":10150},
+"SAMSUNG Galaxy S24 Plus (S926B)": {"256 GB":15120,"512 GB":16870},
+"SAMSUNG Galaxy S24 Ultra (S928B)": {"256 GB":22640,"512 GB":24170,"1 TB":27010},
+"SAMSUNG Galaxy S25 (S931B)": {"128 GB":16930,"256 GB":19500,"512 GB":21660},
+"SAMSUNG Galaxy S25 Edge (S937B)": {"256 GB":15570,"512 GB":16930},
+"SAMSUNG Galaxy S25 FE (S731B)": {"128 GB":11660,"256 GB":12620,"512 GB":14890},
+"SAMSUNG Galaxy S25 Plus (S936B)": {"256 GB":21040,"512 GB":23460},
+"SAMSUNG Galaxy S25 Ultra (S938B)": {"256 GB":24690,"512 GB":27970,"1 TB":31400},
+"SAMSUNG Galaxy S26 (S942B)": {"256 GB":23480,"512 GB":24440},
+"SAMSUNG Galaxy S26 Plus (S947B)": {"256 GB":28210,"512 GB":30380},
+"SAMSUNG Galaxy S26 Ultra (S948B)": {"256 GB":29179,"512 GB":35520,"1 TB":39240},
+"SAMSUNG Galaxy Z Flip (F700F)": {"256 GB":3178},
+"SAMSUNG Galaxy Z Flip3 (F711B)": {"128 GB":3424,"256 GB":3885},
+"SAMSUNG Galaxy Z Fold 3 (F926B)": {"256 GB":8411,"512 GB":9342},
+"XIAOMI 11 Lite 5G NE": {"6 GB/128 GB":1790,"8 GB/128 GB":1950,"8 GB/256 GB":2460},
+"XIAOMI 11T": {"8 GB/128 GB":2750,"8 GB/256 GB":3120},
+"XIAOMI 11T Pro": {"8 GB/128 GB":3050,"8 GB/256 GB":3240,"12 GB/256 GB":3440},
+"XIAOMI 12": {"8 GB/128 GB":4490,"8 GB/256 GB":4780,"12 GB/256 GB":5360},
+"XIAOMI 12 Lite": {"6 GB/128 GB":2880,"8 GB/128 GB":3030,"8 GB/256 GB":3410},
+"XIAOMI 12 Pro": {"8 GB/128 GB":4400,"8 GB/256 GB":4940,"12 GB/256 GB":5210},
+"XIAOMI 12S Ultra": {"8 GB/256 GB":7600,"12 GB/256 GB":8030,"12 GB/512 GB":9010},
+"XIAOMI 12T": {"8 GB/128 GB":4020,"8 GB/256 GB":4560},
+"XIAOMI 12T Pro": {"8 GB/128 GB":4940,"8 GB/256 GB":5530,"12 GB/256 GB":5860},
+"XIAOMI 12X": {"8 GB/128 GB":3690,"8 GB/256 GB":3910,"12 GB/256 GB":4130},
+"XIAOMI 13": {"8 GB/128 GB":8820,"8 GB/256 GB":9890,"12 GB/256 GB":10450,"12 GB/512 GB":11700},
+"XIAOMI 13 Lite": {"8 GB/128 GB":3470,"8 GB/256 GB":3920},
+"XIAOMI 13 Pro": {"8 GB/128 GB":9210,"8 GB/256 GB":10230,"12 GB/256 GB":10680,"12 GB/512 GB":11920},
+"XIAOMI 13T": {"8 GB/256 GB":5610,"12 GB/256 GB":5890},
+"XIAOMI 13T Pro": {"12 GB/256 GB":6630,"12 GB/512 GB":7410,"16 GB/1 TB":8520},
+"XIAOMI 14": {"12 GB/256 GB":11590,"12 GB/512 GB":12260},
+"XIAOMI 14 Pro": {"12 GB/256 GB":11850,"16 GB/512 GB":13720,"16 GB/1 TB":15310},
+"XIAOMI 14 Ultra": {"16 GB/512 GB":17840,"16 GB/1 TB":22630},
+"XIAOMI 14 Ultra 5G": {"12 GB/512 GB":16990},
+"XIAOMI 14T": {"12 GB/256 GB":7280,"12 GB/512 GB":8060},
+"XIAOMI 14T Pro": {"12 GB/256 GB":9380,"12 GB/512 GB":10510,"12 GB/1 TB":11640},
+"XIAOMI 15": {"12 GB/256 GB":14627,"12 GB/512 GB":15110,"16 GB/512 GB":15930},
+"XIAOMI 15 Pro": {"12 GB/256 GB":17270,"16 GB/512 GB":19080,"16 GB/1 TB":21790},
+"XIAOMI 15 Ultra": {"16 GB/512 GB":23080,"16 GB/1 TB":26860},
+"XIAOMI 15T": {"12 GB/256 GB":8820,"12 GB/512 GB":9850},
+"XIAOMI 15T Pro": {"12 GB/256 GB":12370,"12 GB/512 GB":13610,"12 GB/1 TB":15250},
+"XIAOMI 17 Ultra": {"16 GB/512 GB":27800,"16 GB/1 TB":31000},
+"XIAOMI Mi 10": {"8 GB/128 GB":3580,"8 GB/256 GB":3850},
+"XIAOMI Mi 10 Lite": {"6 GB/64 GB":2010,"6 GB/128 GB":2230},
+"XIAOMI Mi 10 Pro": {"8 GB/256 GB":4130},
+"XIAOMI Mi 10T": {"6 GB/128 GB":2300,"8 GB/128 GB":2470},
+"XIAOMI Mi 10T Lite": {"6 GB/64 GB":2010,"6 GB/128 GB":2300},
+"XIAOMI Mi 10T Pro": {"8 GB/128 GB":2710,"8 GB/256 GB":3050},
+"XIAOMI Mi 11": {"8 GB/128 GB":4020,"8 GB/256 GB":4450},
+"XIAOMI Mi 11 Lite": {"6 GB/64 GB":2010,"6 GB/128 GB":1970,"8 GB/128 GB":2120},
+"XIAOMI Mi 11 Pro": {"8 GB/128 GB":4660,"8 GB/256 GB":5160,"12 GB/256 GB":5480},
+"XIAOMI Mi 11 Ultra": {"8 GB/256 GB":7110,"12 GB/256 GB":7550,"12 GB/512 GB":8360},
+"XIAOMI Mi 11i": {"8 GB/128 GB":3910,"8 GB/256 GB":4400},
+"XIAOMI Redmi 10": {"4 GB/64 GB":1440,"4 GB/128 GB":1130,"6 GB/128 GB":1240},
+"XIAOMI Redmi 10 2022": {"4 GB/64 GB":1190,"4 GB/128 GB":1300,"6 GB/128 GB":1410},
+"XIAOMI Redmi 10A": {"2 GB/32 GB":810,"2 GB/64 GB":960,"3 GB/64 GB":1070,"4 GB/64 GB":1130,"4 GB/128 GB":1490,"6 GB/128 GB":1720},
+"XIAOMI Redmi 10C": {"4 GB/64 GB":1540,"4 GB/128 GB":1520},
+"XIAOMI Redmi 10C no NFC": {"4 GB/64 GB":1280,"4 GB/128 GB":1510},
+"XIAOMI Redmi 12": {"4 GB/128 GB":1300,"8 GB/128 GB":1410,"8 GB/256 GB":1580},
+"XIAOMI Redmi 12C": {"3 GB/32 GB":690,"3 GB/64 GB":860,"4 GB/64 GB":950,"4 GB/128 GB":1130,"6 GB/128 GB":1190},
+"XIAOMI Redmi 13": {"6 GB/128 GB":1460,"8 GB/128 GB":1610,"8 GB/256 GB":1830},
+"XIAOMI Redmi 13C": {"4 GB/128 GB":1160,"6 GB/128 GB":1260,"8 GB/256 GB":1530},
+"XIAOMI Redmi 14C": {"4 GB/128 GB":1160,"8 GB/256 GB":1490},
+"XIAOMI Redmi 15": {"4 GB/128 GB":2076,"6 GB/128 GB":2247,"8 GB/256 GB":2611},
+"XIAOMI Redmi 15C": {"4 GB/128 GB":1359,"4 GB/256 GB":1590},
+"XIAOMI Redmi 9": {"3 GB/32 GB":630,"4 GB/64 GB":670,"4 GB/128 GB":770},
+"XIAOMI Redmi 9A": {"2 GB/32 GB":390,"4 GB/64 GB":540},
+"XIAOMI Redmi 9A (1 SIM)": {"2 GB/32 GB":300},
+"XIAOMI Redmi 9AT": {"2 GB/32 GB":399},
+"XIAOMI Redmi 9C": {"2 GB/32 GB":390,"3 GB/64 GB":632,"4 GB/128 GB":900},
+"XIAOMI Redmi 9T": {"4 GB/64 GB":1160,"4 GB/128 GB":1190},
+"XIAOMI Redmi A1": {"2 GB/32 GB":360},
+"XIAOMI Redmi A1 Plus": {"2 GB/32 GB":400,"3 GB/32 GB":490},
+"XIAOMI Redmi A2": {"2 GB/32 GB":460,"3 GB/32 GB":560,"3 GB/64 GB":600,"4 GB/64 GB":660},
+"XIAOMI Redmi A2 Plus": {"2 GB/32 GB":530,"3 GB/32 GB":590,"3 GB/64 GB":740,"4 GB/64 GB":820},
+"XIAOMI Redmi A3": {"3 GB/64 GB":530,"4 GB/128 GB":650},
+"XIAOMI Redmi A5 4G": {"3 GB/64 GB":640,"4 GB/128 GB":850},
+"XIAOMI Redmi Note 10": {"4 GB/64 GB":1680,"4 GB/128 GB":1680,"6 GB/128 GB":1680},
+"XIAOMI Redmi Note 10 5G": {"4 GB/64 GB":1620,"4 GB/128 GB":1680,"6 GB/128 GB":1820},
+"XIAOMI Redmi Note 10 Pro": {"6 GB/64 GB":1850,"6 GB/128 GB":2110,"8 GB/128 GB":2170,"8 GB/256 GB":2500},
+"XIAOMI Redmi Note 10 Pro 5G": {"6 GB/128 GB":2090,"8 GB/128 GB":2230,"8 GB/256 GB":2710},
+"XIAOMI Redmi Note 10S": {"6 GB/64 GB":1520,"6 GB/128 GB":1680,"8 GB/128 GB":1790},
+"XIAOMI Redmi Note 11": {"4 GB/64 GB":1630,"4 GB/128 GB":1680,"6 GB/128 GB":1820},
+"XIAOMI Redmi Note 11 Pro": {"6 GB/64 GB":2090,"6 GB/128 GB":2330,"8 GB/128 GB":2500},
+"XIAOMI Redmi Note 11 Pro 5G": {"6 GB/64 GB":2330,"6 GB/128 GB":2660,"8 GB/128 GB":2760},
+"XIAOMI Redmi Note 11 Pro Plus": {"6 GB/128 GB":2500,"8 GB/128 GB":2660,"8 GB/256 GB":3030},
+"XIAOMI Redmi Note 11E": {"4 GB/128 GB":1920,"6 GB/128 GB":2080},
+"XIAOMI Redmi Note 11E Pro": {"6 GB/128 GB":2190,"8 GB/128 GB":2320,"8 GB/256 GB":2660},
+"XIAOMI Redmi Note 11S 5G": {"4 GB/64 GB":2110,"4 GB/128 GB":2380},
+"XIAOMI Redmi Note 11s": {"6 GB/64 GB":1760,"6 GB/128 GB":2030,"8 GB/128 GB":2170},
+"XIAOMI Redmi Note 12": {"4 GB/64 GB":1390,"4 GB/128 GB":1530,"6 GB/128 GB":1630,"8 GB/128 GB":1629,"8 GB/256 GB":1870},
+"XIAOMI Redmi Note 12 5G": {"4 GB/128 GB":1730,"6 GB/128 GB":1600,"8 GB/256 GB":2020},
+"XIAOMI Redmi Note 12 Pro": {"6 GB/128 GB":1890,"8 GB/128 GB":1970,"8 GB/256 GB":2260,"12 GB/256 GB":2920},
+"XIAOMI Redmi Note 12 Pro 5G": {"6 GB/128 GB":2490,"8 GB/128 GB":2810,"8 GB/256 GB":3180},
+"XIAOMI Redmi Note 12 Pro Plus 5G": {"8 GB/256 GB":3180,"12 GB/256 GB":3520},
+"XIAOMI Redmi Note 12s": {"6 GB/128 GB":1440,"8 GB/256 GB":1680},
+"XIAOMI Redmi Note 13": {"6 GB/128 GB":2110,"8 GB/128 GB":2280,"8 GB/256 GB":2500,"8 GB/512 GB":2674},
+"XIAOMI Redmi Note 13 5G": {"6 GB/128 GB":2330,"8 GB/128 GB":2500,"8 GB/256 GB":2870},
+"XIAOMI Redmi Note 13 Pro": {"8 GB/256 GB":3080,"12 GB/256 GB":3300,"12 GB/512 GB":3740},
+"XIAOMI Redmi Note 13 Pro 5G": {"8 GB/256 GB":4020,"12 GB/256 GB":4250,"12 GB/512 GB":4760},
+"XIAOMI Redmi Note 13 Pro Plus 5G": {"8 GB/256 GB":4600,"12 GB/256 GB":4870,"12 GB/512 GB":5440},
+"XIAOMI Redmi Note 14": {"6 GB/128 GB":2320,"8 GB/256 GB":2680},
+"XIAOMI Redmi Note 14 5G": {"6 GB/128 GB":2930,"8 GB/256 GB":3330},
+"XIAOMI Redmi Note 14 Pro": {"8 GB/256 GB":3800},
+"XIAOMI Redmi Note 14 Pro 5G": {"8 GB/256 GB":4750},
+"XIAOMI Redmi Note 14 Pro Plus 5G": {"8 GB/256 GB":5490,"12 GB/512 GB":6440},
+"XIAOMI Redmi Note 14S": {"8 GB/256 GB":3130},
+"XIAOMI Redmi Note 15": {"6 GB/128 GB":3157,"8 GB/128 GB":3371,"8 GB/256 GB":3895,"8 GB/512 GB":4387,"12 GB/512 GB":4655},
+"XIAOMI Redmi Note 15 4G": {"6 GB/128 GB":2654,"8 GB/128 GB":2810,"8 GB/256 GB":3430,"8 GB/512 GB":3610},
+"XIAOMI Redmi Note 15 Pro": {"8 GB/256 GB":5660,"12 GB/256 GB":5940,"8 GB/512 GB":6330,"12 GB/512 GB":6780},
+"XIAOMI Redmi Note 15 Pro Plus": {"8 GB/256 GB":7200,"12 GB/256 GB":7630,"12 GB/512 GB":8580},
+"XIAOMI Redmi Note 9": {"3 GB/64 GB":870,"4 GB/128 GB":1100},
+"XIAOMI Redmi Note 9 Pro": {"6 GB/64 GB":1320,"6 GB/128 GB":1320},
+"XIAOMI Redmi Note 9S": {"4 GB/64 GB":1190,"6 GB/128 GB":1270},
+"XIAOMI Redmi Note 9T": {"4 GB/64 GB":1420,"4 GB/128 GB":1640},
+"POCO C40": {"3 GB/32 GB":110,"4 GB/64 GB":850},
+"POCO C65": {"6 GB/128 GB":1240,"8 GB/256 GB":1460},
+"POCO C75": {"6 GB/128 GB":1520,"8 GB/256 GB":1790},
+"POCO C85": {"6 GB/128 GB":1440,"8 GB/256 GB":1830},
+"POCO F2 Pro": {"6 GB/128 GB":2380,"8 GB/256 GB":2710},
+"POCO F3": {"6 GB/128 GB":2660,"8 GB/256 GB":3030},
+"POCO F4": {"6 GB/128 GB":3750,"8 GB/128 GB":3960,"8 GB/256 GB":4450,"12 GB/512 GB":5210},
+"POCO F4 GT": {"8 GB/128 GB":6130,"12 GB/256 GB":6300},
+"POCO F5": {"8 GB/256 GB":4940,"12 GB/256 GB":5210},
+"POCO F5 Pro": {"8 GB/256 GB":6300,"12 GB/256 GB":6680,"12 GB/512 GB":7270},
+"POCO F6": {"12 GB/512 GB":5440},
+"POCO F6 Pro": {"12 GB/256 GB":6010,"12 GB/512 GB":6480,"16 GB/1 TB":7440},
+"POCO F7": {"12 GB/256 GB":7340,"12 GB/512 GB":8250},
+"POCO F7 Pro": {"12 GB/256 GB":8580,"12 GB/512 GB":9680},
+"POCO F7 Ultra": {"12 GB/256 GB":10690,"16 GB/512 GB":13520},
+"POCO F8 Pro": {"12 GB/256 GB":10880,"12 GB/512 GB":12420},
+"POCO F8 Ultra": {"12 GB/256 GB":16260,"16 GB/512 GB":18850},
+"POCO M3": {"4 GB/64 GB":1440,"4 GB/128 GB":1580},
+"POCO M3 Pro": {"4 GB/64 GB":1580,"6 GB/128 GB":1900},
+"POCO M3 Pro 5G": {"4 GB/64 GB":1580,"6 GB/128 GB":1950},
+"POCO M4 Pro": {"6 GB/64 GB":1680,"6 GB/128 GB":1950,"8 GB/256 GB":2380},
+"POCO M4 Pro 5G": {"4 GB/64 GB":1430,"4 GB/128 GB":1440,"6 GB/128 GB":1530,"8 GB/256 GB":1730},
+"POCO M5": {"4 GB/64 GB":1340,"4 GB/128 GB":1500,"6 GB/128 GB":1580},
+"POCO M5s": {"4 GB/64 GB":1190,"4 GB/128 GB":1410,"6 GB/128 GB":1520,"8 GB/256 GB":1790},
+"POCO M6 Pro": {"8 GB/256 GB":2600,"12 GB/512 GB":3140},
+"POCO M7 Pro 5G": {"8 GB/256 GB":2900,"12 GB/256 GB":3190,"12 GB/512 GB":3690},
+"POCO X3": {"6 GB/64 GB":1680,"6 GB/128 GB":1950},
+"POCO X3 GT": {"8 GB/128 GB":2710,"8 GB/256 GB":3060},
+"POCO X3 Pro": {"6 GB/128 GB":1530,"8 GB/256 GB":1970},
+"POCO X4 GT": {"8 GB/128 GB":3910,"8 GB/256 GB":4400,"12 GB/256 GB":4660},
+"POCO X4 Pro": {"6 GB/128 GB":3140,"8 GB/256 GB":3690},
+"POCO X5": {"6 GB/128 GB":2240,"8 GB/256 GB":2760},
+"POCO X5 Pro": {"6 GB/128 GB":3310,"8 GB/256 GB":3850},
+"POCO X6": {"8 GB/256 GB":3800,"12 GB/512 GB":4470},
+"POCO X6 Pro": {"8 GB/256 GB":4420,"12 GB/512 GB":4990},
+"POCO X7": {"8 GB/256 GB":3590,"12 GB/512 GB":4070},
+"POCO X7 Pro": {"8 GB/256 GB":4740,"12 GB/512 GB":5700},
+"POCO X8 Pro Max": {"12 GB/256 GB":11450},
+"OPPO A12": {"3 GB/32 GB":375,"4 GB/64 GB":535},
+"OPPO A15": {"2 GB/32 GB":482},
+"OPPO A15s": {"4 GB/64 GB":653},
+"OPPO A16": {"3 GB/32 GB":439,"4 GB/64 GB":535},
+"OPPO A16s": {"4 GB/64 GB":760},
+"OPPO A17": {"4 GB/64 GB":653,"6 GB/128 GB":878},
+"OPPO A17k": {"3 GB/64 GB":600},
+"OPPO A18": {"4 GB/128 GB":1252},
+"OPPO A1k": {"3 GB/32 GB":339},
+"OPPO A3": {"6 GB/128 GB":2130,"6 GB/256 GB":2376},
+"OPPO A31": {"4 GB/64 GB":600,"4 GB/128 GB":2889},
+"OPPO A38": {"4 GB/128 GB":1145},
+"OPPO A3s": {"2 GB/16 GB":311,"3 GB/32 GB":439},
+"OPPO A3x": {"4 GB/64 GB":1263,"4 GB/128 GB":1477},
+"OPPO A40m": {"8 GB/256 GB":2996},
+"OPPO A5 2025": {"6 GB/128 GB":2258,"8 GB/256 GB":2729},
+"OPPO A5 Pro": {"8 GB/128 GB":2782,"8 GB/256 GB":2483},
+"OPPO A5 Pro 4G": {"8 GB/128 GB":2665,"8 GB/256 GB":3061},
+"OPPO A52": {"4 GB/64 GB":1038},
+"OPPO A53": {"4 GB/64 GB":996,"4 GB/128 GB":1210},
+"OPPO A54": {"4 GB/64 GB":1060,"4 GB/128 GB":1252},
+"OPPO A54s": {"4 GB/128 GB":1424},
+"OPPO A55": {"4 GB/64 GB":1038},
+"OPPO A57": {"4 GB/64 GB":1531,"4 GB/128 GB":1798,"6 GB/128 GB":1926},
+"OPPO A57s": {"4 GB/64 GB":1274,"4 GB/128 GB":1477},
+"OPPO A58": {"6 GB/128 GB":1734,"8 GB/128 GB":2001},
+"OPPO A5x 4G": {"4 GB/128 GB":2247},
+"OPPO A6 Pro": {"6 GB/128 GB":3906,"8 GB/256 GB":4452,"12 GB/256 GB":4730},
+"OPPO A60": {"8 GB/128 GB":2119,"8 GB/256 GB":2857},
+"OPPO A72": {"4 GB/128 GB":1424},
+"OPPO A73": {"4 GB/128 GB":1327},
+"OPPO A74": {"4 GB/128 GB":1488},
+"OPPO A76": {"4 GB/128 GB":1541,"6 GB/128 GB":1980},
+"OPPO A77": {"4 GB/64 GB":2183,"4 GB/128 GB":2365},
+"OPPO A77s": {"8 GB/128 GB":2419},
+"OPPO A78": {"8 GB/128 GB":2247,"8 GB/256 GB":2579},
+"OPPO A78 5G": {"4 GB/128 GB":2419,"8 GB/128 GB":2750},
+"OPPO A83": {"2 GB/16 GB":439,"3 GB/32 GB":589,"4 GB/64 GB":792},
+"OPPO A94": {"8 GB/128 GB":1969},
+"OPPO A95": {"8 GB/128 GB":2033},
+"OPPO A96": {"6 GB/128 GB":1787,"8 GB/128 GB":1884,"8 GB/256 GB":2194},
+"OPPO A98 5G": {"8 GB/256 GB":3071},
+"OPPO F11": {"4 GB/128 GB":1263},
+"OPPO Find N2 Flip": {"8 GB/256 GB":7490},
+"OPPO Find N3": {"16 GB/512 GB":25113},
+"OPPO Find N3 Flip": {"12 GB/256 GB":12990,"12 GB/512 GB":12990},
+"OPPO Find N5": {"16 GB/512 GB":33640},
+"OPPO Find X2": {"12 GB/256 GB":4730},
+"OPPO Find X2 Neo": {"12 GB/256 GB":3071},
+"OPPO Find X3 Lite": {"8 GB/128 GB":3071},
+"OPPO Find X3 Pro": {"12 GB/256 GB":4173},
+"OPPO Find X5": {"8 GB/256 GB":5832},
+"OPPO Find X5 Lite": {"8 GB/256 GB":3467},
+"OPPO Find X5 Pro": {"12 GB/256 GB":6656},
+"OPPO Find X8": {"12 GB/256 GB":12990,"16 GB/512 GB":14638},
+"OPPO Find X8 Pro": {"12 GB/512 GB":17399},
+"OPPO RX17 Neo": {"4 GB/128 GB":1327},
+"OPPO RX17 Pro": {"6 GB/128 GB":546},
+"OPPO Reno10 5G": {"8 GB/256 GB":4173},
+"OPPO Reno10 Pro 5G": {"12 GB/256 GB":5169},
+"OPPO Reno11": {"12 GB/256 GB":5554},
+"OPPO Reno11 F 5G": {"8 GB/256 GB":3735},
+"OPPO Reno12": {"12 GB/256 GB":4815},
+"OPPO Reno12 F": {"8 GB/256 GB":2793,"8 GB/512 GB":3136},
+"OPPO Reno12 F 5G": {"8 GB/256 GB":3189},
+"OPPO Reno12 FS 5G": {"12 GB/512 GB":4730},
+"OPPO Reno12 Pro": {"12 GB/512 GB":8678},
+"OPPO Reno13": {"8 GB/128 GB":7490,"8 GB/256 GB":8143,"12 GB/256 GB":8646,"12 GB/512 GB":9577},
+"OPPO Reno13 F": {"8 GB/256 GB":4398,"8 GB/512 GB":4890},
+"OPPO Reno13 F 5G": {"8 GB/256 GB":4730,"12 GB/256 GB":5008,"12 GB/512 GB":5661},
+"OPPO Reno13 Pro 5G": {"12 GB/512 GB":10626},
+"OPPO Reno14": {"8 GB/256 GB":12990,"12 GB/256 GB":12990},
+"OPPO Reno14 F": {"4 GB/128 GB":6431,"8 GB/128 GB":6431,"8 GB/256 GB":5778,"12 GB/256 GB":5778,"16 GB/512 GB":6431},
+"OPPO Reno15": {"8 GB/256 GB":9510,"12 GB/256 GB":10040,"8 GB/512 GB":10670,"12 GB/512 GB":11100},
+"OPPO Reno15 F": {"8 GB/128 GB":5360,"8 GB/256 GB":6030,"12 GB/256 GB":6350,"12 GB/512 GB":7070},
+"OPPO Reno15 FS": {"8 GB/256 GB":5910,"8 GB/512 GB":6650},
+"OPPO Reno15 Pro": {"12 GB/256 GB":13964,"12 GB/512 GB":15558},
+"OPPO Reno15 Pro Max": {"12 GB/256 GB":17820,"12 GB/512 GB":19890},
+"OPPO Reno3": {"8 GB/128 GB":1317},
+"OPPO Reno3 Pro": {"8 GB/256 GB":1595},
+"OPPO Reno3 Pro 5G": {"12 GB/256 GB":1702},
+"OPPO Reno4": {"8 GB/128 GB":1862},
+"OPPO Reno4 5G": {"8 GB/128 GB":2247},
+"OPPO Reno4 Pro": {"8 GB/256 GB":2365},
+"OPPO Reno4 Z": {"8 GB/128 GB":1819},
+"OPPO Reno4 lite": {"8 GB/128 GB":1595},
+"OPPO Reno5 4G": {"8 GB/128 GB":1777},
+"OPPO Reno5 5G": {"8 GB/128 GB":1929},
+"OPPO Reno5 Z": {"8 GB/128 GB":2247},
+"OPPO Reno5 lite": {"8 GB/128 GB":1702},
+"OPPO Reno6": {"8 GB/128 GB":2258},
+"OPPO Reno6 Pro 5G": {"12 GB/256 GB":4730},
+"OPPO Reno7": {"8 GB/128 GB":2140},
+"OPPO Reno7 5G": {"8 GB/256 GB":2633},
+"OPPO Reno7 Lite 5G": {"8 GB/128 GB":1969},
+"OPPO Reno8": {"8 GB/256 GB":4676},
+"OPPO Reno8 Pro 5G": {"8 GB/256 GB":5169},
+"OPPO Reno8 T": {"8 GB/128 GB":2526,"8 GB/256 GB":2857},
+"OPPO Reno8 lite": {"8 GB/128 GB":2986},
+"REALME 10": {"6 GB/128 GB":2365,"4 GB/128 GB":2247,"8 GB/128 GB":2526,"4 GB/64 GB":2076,"8 GB/256 GB":2857},
+"REALME 10 Pro Plus": {"8 GB/128 GB":3232,"6 GB/128 GB":3467,"12 GB/256 GB":4173},
+"REALME 11": {"8 GB/128 GB":2419,"8 GB/256 GB":2750},
+"REALME 11 Pro": {"8 GB/256 GB":3959},
+"REALME 11 Pro Plus": {"8 GB/256 GB":4173,"12 GB/512 GB":4730},
+"REALME 12": {"8 GB/256 GB":3061,"8 GB/512 GB":3210},
+"REALME 12 5G": {"8 GB/256 GB":3103},
+"REALME 12 Pro": {"12 GB/512 GB":4644,"8 GB/256 GB":4066},
+"REALME 12 Pro Plus": {"8 GB/256 GB":5062,"12 GB/512 GB":6110},
+"REALME 13": {"12 GB/256 GB":3628},
+"REALME 13 Plus": {"12 GB/256 GB":5554},
+"REALME 13 Plus 5G": {"8 GB/256 GB":5008},
+"REALME 14": {"12 GB/256 GB":5072,"12 GB/512 GB":5725},
+"REALME 14 Pro 5G": {"8 GB/128 GB":6057,"8 GB/256 GB":6634,"12 GB/512 GB":7961,"12 GB/256 GB":7169},
+"REALME 14 Pro Plus": {"8 GB/256 GB":8881,"12 GB/256 GB":9374,"12 GB/512 GB":10230,"8 GB/128 GB":7918},
+"REALME 14T": {"8 GB/128 GB":4516,"12 GB/256 GB":5554,"8 GB/256 GB":5040},
+"REALME 14x": {"8 GB/256 GB":3724,"6 GB/128 GB":3146},
+"REALME 15": {"12 GB/256 GB":5832},
+"REALME 15 Pro": {"8 GB/128 GB":6656,"12 GB/512 GB":8304,"12 GB/256 GB":7490,"8 GB/256 GB":7212},
+"REALME 15T": {"8 GB/128 GB":4013,"8 GB/256 GB":4398,"12 GB/512 GB":5554,"12 GB/256 GB":4730},
+"REALME 5i": {"3 GB/32 GB":653,"4 GB/64 GB":931},
+"REALME 6": {"4 GB/64 GB":1231,"4 GB/128 GB":1456,"8 GB/128 GB":1595},
+"REALME 6 Pro": {"8 GB/128 GB":1755},
+"REALME 6i": {"4 GB/128 GB":1210,"3 GB/64 GB":931},
+"REALME 6s": {"6 GB/128 GB":1424,"4 GB/64 GB":1145},
+"REALME 7": {"8 GB/128 GB":1424,"6 GB/64 GB":1210,"4 GB/64 GB":1113},
+"REALME 7 5G": {"6 GB/128 GB":1702},
+"REALME 7 Pro": {"8 GB/128 GB":2012,"6 GB/128 GB":2429},
+"REALME 7i": {"4 GB/128 GB":1231,"8 GB/128 GB":1317,"4 GB/64 GB":1038},
+"REALME 8": {"8 GB/128 GB":1638,"6 GB/128 GB":1563,"4 GB/128 GB":1466,"4 GB/64 GB":1242},
+"REALME 8 5G": {"8 GB/128 GB":1638,"4 GB/64 GB":1573},
+"REALME 8 Pro": {"8 GB/128 GB":1959,"6 GB/128 GB":1830},
+"REALME 8i": {"4 GB/64 GB":1295,"4 GB/128 GB":1531},
+"REALME 9": {"8 GB/128 GB":2504,"6 GB/128 GB":2301},
+"REALME 9 Pro": {"8 GB/128 GB":2579,"6 GB/128 GB":2419},
+"REALME 9 Pro Plus": {"8 GB/128 GB":3189,"8 GB/256 GB":3628},
+"REALME 9i": {"6 GB/128 GB":1862,"4 GB/128 GB":1702,"4 GB/64 GB":1477},
+"REALME C11": {"2 GB/32 GB":482},
+"REALME C11 2021": {"2 GB/32 GB":535,"4 GB/64 GB":696},
+"REALME C15": {"4 GB/64 GB":996,"4 GB/128 GB":1199},
+"REALME C21": {"4 GB/64 GB":867,"3 GB/32 GB":696},
+"REALME C21Y": {"4 GB/64 GB":728,"3 GB/32 GB":578},
+"REALME C25S": {"4 GB/128 GB":1413},
+"REALME C25Y": {"4 GB/64 GB":1220,"6 GB/128 GB":1456,"4 GB/128 GB":1381},
+"REALME C3": {"2 GB/32 GB":600,"3 GB/32 GB":653,"3 GB/64 GB":803},
+"REALME C30": {"2 GB/32 GB":621,"4 GB/64 GB":1081,"3 GB/32 GB":803},
+"REALME C30s": {"4 GB/64 GB":803,"2 GB/32 GB":568,"3 GB/64 GB":739,"3 GB/32 GB":653},
+"REALME C31": {"4 GB/64 GB":1145,"3 GB/32 GB":867},
+"REALME C33": {"3 GB/32 GB":974,"4 GB/128 GB":1413,"4 GB/64 GB":1199},
+"REALME C35": {"6 GB/128 GB":1541,"4 GB/128 GB":1434,"6 GB/64 GB":1284,"4 GB/64 GB":1220},
+"REALME C51": {"6 GB/256 GB":1477,"3 GB/64 GB":953,"4 GB/128 GB":1252,"4 GB/64 GB":1017},
+"REALME C53": {"8 GB/256 GB":1702,"6 GB/128 GB":1477},
+"REALME C55": {"6 GB/128 GB":1884,"8 GB/256 GB":2183},
+"REALME C61": {"6 GB/256 GB":1263,"8 GB/128 GB":1263},
+"REALME C63": {"8 GB/256 GB":1916,"6 GB/128 GB":1595},
+"REALME C65": {"8 GB/256 GB":2087,"6 GB/128 GB":1702},
+"REALME C67": {"8 GB/256 GB":2697,"6 GB/128 GB":2301,"4 GB/128 GB":2162},
+"REALME C67 4G": {"8 GB/256 GB":2376,"8 GB/128 GB":2087,"6 GB/128 GB":1980},
+"REALME C71": {"4 GB/64 GB":1317,"6 GB/128 GB":1670,"4 GB/128 GB":1541,"8 GB/128 GB":1798,"8 GB/256 GB":2140},
+"REALME C75": {"8 GB/256 GB":2451,"8 GB/128 GB":2140,"6 GB/128 GB":2194,"4 GB/128 GB":2055,"4 GB/64 GB":1787},
+"REALME C85": {"8 GB/256 GB":3243,"8 GB/128 GB":2879,"4 GB/128 GB":2558,"6 GB/128 GB":2718},
+"REALME GT 5G": {"12 GB/256 GB":4248,"8 GB/128 GB":3724},
+"REALME GT Master Edition": {"8 GB/256 GB":3788,"8 GB/128 GB":3467,"6 GB/128 GB":3157},
+"REALME GT Neo": {"8 GB/128 GB":4484},
+"REALME GT Neo 2": {"8 GB/128 GB":4152,"12 GB/256 GB":4708},
+"REALME GT Neo 3": {"8 GB/256 GB":4452,"12 GB/512 GB":5286,"12 GB/256 GB":4730,"8 GB/128 GB":3959,"6 GB/128 GB":3735},
+"REALME GT Neo 3T": {"8 GB/256 GB":5286},
+"REALME GT Neo 5": {"8 GB/256 GB":5008,"12 GB/256 GB":5500,"16 GB/1 TB":6656},
+"REALME GT Neo 5 SE": {"8 GB/256 GB":4452,"12 GB/256 GB":4730,"16 GB/1 TB":6378},
+"REALME GT2": {"12 GB/256 GB":5008,"8 GB/128 GB":4173,"8 GB/256 GB":4730},
+"REALME GT2 Pro": {"12 GB/512 GB":6656,"12 GB/256 GB":5832,"8 GB/256 GB":5554,"8 GB/128 GB":5008},
+"REALME GT3": {"8 GB/256 GB":6827,"8 GB/128 GB":6110,"16 GB/1 TB":8304},
+"REALME GT5": {"24 GB/1 TB":8368},
+"REALME GT5 Pro": {"16 GB/1 TB":8582},
+"REALME GT6": {"12 GB/256 GB":8304,"16 GB/512 GB":9684},
+"REALME GT6T": {"8 GB/256 GB":7597,"12 GB/256 GB":8036},
+"REALME GT7": {"16 GB/512 GB":10786,"12 GB/512 GB":11342,"12 GB/256 GB":10230,"8 GB/256 GB":9684},
+"REALME GT7 Pro": {"16 GB/256 GB":11080,"12 GB/512 GB":11720,"12 GB/256 GB":10460,"16 GB/512 GB":12330,"16 GB/1 TB":14250},
+"REALME GT7 Pro Racing": {"16 GB/512 GB":12070,"16 GB/256 GB":10829,"12 GB/512 GB":11428,"12 GB/256 GB":10283},
+"REALME GT7T": {"8 GB/256 GB":8120,"8 GB/128 GB":7230,"12 GB/512 GB":9220,"12 GB/256 GB":8620},
+"REALME GT8 Pro": {"16 GB/256 GB":17955,"12 GB/512 GB":19046,"12 GB/256 GB":17120,"16 GB/512 GB":20149,"16 GB/1 TB":22353},
+"REALME Narzo 50": {"4 GB/128 GB":1916,"4 GB/64 GB":1638},
+"REALME Narzo 50A": {"4 GB/64 GB":878,"4 GB/128 GB":1038},
+"REALME Narzo 50A Prime": {"4 GB/64 GB":1359,"4 GB/128 GB":1595},
+"REALME Narzo 50i Prime": {"4 GB/64 GB":1210,"3 GB/32 GB":985},
+"REALME Note 50": {"4 GB/256 GB":1092,"4 GB/128 GB":996,"3 GB/64 GB":846},
+"REALME Note 60": {"4 GB/128 GB":1113,"6 GB/128 GB":1734},
+"REALME Note 60x": {"4 GB/128 GB":1070,"3 GB/64 GB":814,"4 GB/64 GB":889},
+"REALME Note 70": {"6 GB/128 GB":1638,"4 GB/128 GB":1359},
+"REALME X3": {"12 GB/256 GB":2697},
+"REALME X3 SuperZoom": {"12 GB/256 GB":3039,"8 GB/128 GB":2697,"6 GB/128 GB":2515},
+"REALME X50": {"8 GB/128 GB":2986,"6 GB/128 GB":2836},
+"REALME X50 Pro": {"8 GB/128 GB":2793,"6 GB/128 GB":2611,"12 GB/512 GB":4109,"8 GB/256 GB":3136},
+"HUAWEI Mate 40 Pro": {"8 GB/256 GB":7319},
+"HUAWEI Mate 50": {"8 GB/256 GB":5425,"8 GB/512 GB":6239,"8 GB/128 GB":4837},
+"HUAWEI Mate 50 Pro": {"8 GB/256 GB":7319,"8 GB/512 GB":8400},
+"HUAWEI Mate X3": {"12 GB/512 GB":15751},
+"HUAWEI Mate X6": {"12 GB/512 GB":25948},
+"HUAWEI Mate XS 2": {"8 GB/512 GB":11428},
+"HUAWEI Mate XT": {"16 GB/1 TB":46909},
+"HUAWEI Nova 10": {"8 GB/128 GB":2622,"8 GB/256 GB":2996},
+"HUAWEI Nova 10 Pro": {"8 GB/256 GB":3328},
+"HUAWEI Nova 10 SE": {"8 GB/128 GB":2461},
+"HUAWEI Nova 11": {"8 GB/256 GB":2408},
+"HUAWEI Nova 11 Pro": {"8 GB/256 GB":4751},
+"HUAWEI Nova 11i": {"8 GB/128 GB":2140},
+"HUAWEI Nova 12 SE": {"8 GB/256 GB":2515},
+"HUAWEI Nova 12i": {"8 GB/256 GB":2301},
+"HUAWEI Nova 12s": {"8 GB/256 GB":3970},
+"HUAWEI Nova 13": {"12 GB/256 GB":4890,"12 GB/512 GB":6517,"12 GB/1 TB":7159},
+"HUAWEI Nova 13 Pro": {"12 GB/256 GB":7052,"12 GB/1 TB":8774,"12 GB/512 GB":7918},
+"HUAWEI Nova 13i": {"8 GB/128 GB":2087,"8 GB/256 GB":2354},
+"HUAWEI Nova 14": {"12 GB/512 GB":7865,"12 GB/256 GB":6998},
+"HUAWEI Nova 14 Pro": {"12 GB/256 GB":8293,"12 GB/512 GB":9481},
+"HUAWEI Nova 14 Ultra": {"12 GB/1 TB":13375,"12 GB/512 GB":11096,"12 GB/256 GB":8774},
+"HUAWEI Nova 7 SE": {"8 GB/256 GB":2772,"8 GB/128 GB":2419,"6 GB/128 GB":2226},
+"HUAWEI Nova 8": {"8 GB/128 GB":2772},
+"HUAWEI Nova 8i": {"6 GB/128 GB":1916},
+"HUAWEI Nova 9": {"8 GB/128 GB":2986},
+"HUAWEI Nova 9 SE": {"6 GB/128 GB":2194,"8 GB/128 GB":2322},
+"HUAWEI Nova Y61": {"4 GB/64 GB":1616},
+"HUAWEI Nova Y63": {"4 GB/128 GB":1819},
+"HUAWEI Nova Y70": {"4 GB/64 GB":1231,"4 GB/128 GB":1520},
+"HUAWEI Nova Y72": {"8 GB/256 GB":1980,"8 GB/128 GB":1648},
+"HUAWEI Nova Y72s": {"8 GB/256 GB":2461,"8 GB/128 GB":2140},
+"HUAWEI Nova Y90 2022": {"6 GB/128 GB":2387,"8 GB/128 GB":2536,"4 GB/128 GB":2226},
+"HUAWEI Nova Y91": {"8 GB/128 GB":2408,"8 GB/256 GB":2675},
+"HUAWEI P Smart 2021": {"4 GB/128 GB":1028},
+"HUAWEI P Smart S 2020": {"4 GB/128 GB":1103},
+"HUAWEI P40": {"6 GB/128 GB":2772,"8 GB/128 GB":3253,"8 GB/256 GB":3681},
+"HUAWEI P40 Lite": {"6 GB/128 GB":1327},
+"HUAWEI P40 Lite E": {"4 GB/64 GB":1028},
+"HUAWEI P40 Pro": {"8 GB/512 GB":4409,"8 GB/256 GB":3949,"8 GB/128 GB":3478},
+"HUAWEI P50": {"8 GB/256 GB":5276},
+"HUAWEI P50 Pocket": {"8 GB/256 GB":7437,"12 GB/512 GB":8357},
+"HUAWEI P50 Pro": {"8 GB/256 GB":7030},
+"HUAWEI P60": {"8 GB/256 GB":9481},
+"HUAWEI P60 Art": {"8 GB/256 GB":10882,"12 GB/1 TB":13857},
+"HUAWEI P60 Pro": {"8 GB/256 GB":8132,"12 GB/512 GB":9427},
+"HUAWEI Pura 70": {"12 GB/256 GB":9641},
+"HUAWEI Pura 70 Pro": {"12 GB/512 GB":11535,"12 GB/256 GB":10347},
+"HUAWEI Pura 70 Ultra": {"16 GB/1 TB":18116,"16 GB/512 GB":14777},
+"HUAWEI Pura 80": {"12 GB/512 GB":12723,"12 GB/256 GB":11535,"12 GB/1 TB":14071},
+"HUAWEI Pura 80 Pro": {"12 GB/256 GB":13964,"12 GB/1 TB":17046,"12 GB/512 GB":15644},
+"HUAWEI Pura 80 Pro Plus": {"16 GB/512 GB":20288,"16 GB/1 TB":22513},
+"HUAWEI Pura 80 Ultra": {"16 GB/1 TB":26761,"16 GB/512 GB":24610},
+"HUAWEI Y5p": {"2 GB/32 GB":150},
+"HUAWEI Y6p 2020": {"3 GB/64 GB":578,"3 GB/32 GB":439,"4 GB/64 GB":653},
+"HUAWEI Y6s 2020": {"3 GB/64 GB":760,"3 GB/32 GB":621},
+"HUAWEI Y8p": {"4 GB/128 GB":1103},
+"HONOR 10": {"4 GB/64 GB":107},
+"HONOR 10X Lite": {"4 GB/128 GB":632},
+"HONOR 200": {"12 GB/512 GB":4430,"8 GB/256 GB":3874},
+"HONOR 200 Lite": {"8 GB/256 GB":2889},
+"HONOR 200 Pro": {"12 GB/512 GB":7437},
+"HONOR 20E": {"4 GB/64 GB":503},
+"HONOR 30": {"8 GB/256 GB":2772,"6 GB/128 GB":2322,"8 GB/128 GB":2419},
+"HONOR 400": {"12 GB/512 GB":9352,"8 GB/256 GB":8432},
+"HONOR 400 Lite": {"8 GB/256 GB":4088},
+"HONOR 400 Pro": {"12 GB/512 GB":12102},
+"HONOR 50": {"6 GB/128 GB":3007,"8 GB/256 GB":3606,"8 GB/128 GB":3168},
+"HONOR 50 Lite": {"6 GB/128 GB":2087},
+"HONOR 70": {"8 GB/128 GB":4216,"8 GB/256 GB":4484,"12 GB/512 GB":6089,"12 GB/256 GB":5415},
+"HONOR 70 Lite": {"4 GB/128 GB":1498,"8 GB/256 GB":1745},
+"HONOR 70 Pro": {"12 GB/256 GB":6795,"8 GB/256 GB":6399,"12 GB/512 GB":7555},
+"HONOR 70 Pro Plus": {"8 GB/256 GB":7715,"12 GB/256 GB":8475},
+"HONOR 90": {"8 GB/256 GB":4430,"12 GB/512 GB":4976},
+"HONOR 90 Lite": {"8 GB/256 GB":2076},
+"HONOR 9A": {"3 GB/64 GB":503},
+"HONOR 9S": {"2 GB/32 GB":257},
+"HONOR 9c": {"4 GB/64 GB":461},
+"HONOR Magic 3": {"8 GB/256 GB":5383},
+"HONOR Magic 3 Pro": {"8 GB/128 GB":5479,"8 GB/256 GB":6174},
+"HONOR Magic 3 Pro Plus": {"12 GB/512 GB":7169},
+"HONOR Magic 4 Lite": {"8 GB/256 GB":3371,"6 GB/128 GB":2847},
+"HONOR Magic 4 Pro": {"8 GB/256 GB":9095},
+"HONOR Magic 5 Lite": {"8 GB/256 GB":3382,"6 GB/128 GB":2729},
+"HONOR Magic 5 Pro": {"12 GB/512 GB":11278},
+"HONOR Magic 6 Lite": {"8 GB/256 GB":3339},
+"HONOR Magic 6 Pro": {"12 GB/512 GB":12926},
+"HONOR Magic 7": {"12 GB/256 GB":20042},
+"HONOR Magic V2": {"16 GB/512 GB":15109,"12 GB/512 GB":14296},
+"HONOR Magic7": {"12 GB/256 GB":20042},
+"HONOR Magic7 Pro": {"12 GB/512 GB":21144},
+"HONOR Magic8 Lite": {"8 GB/512 GB":6378,"8 GB/256 GB":5960},
+"HONOR Magic8 Pro": {"16 GB/512 GB":22417,"16 GB/1 TB":25113,"12 GB/256 GB":19186,"12 GB/512 GB":21347},
+"HONOR X5 2023": {"2 GB/32 GB":525},
+"HONOR X5 Plus": {"4 GB/64 GB":1028},
+"HONOR X5b": {"4 GB/64 GB":1028},
+"HONOR X5b Plus": {"4 GB/128 GB":1413},
+"HONOR X6": {"4 GB/128 GB":1959,"4 GB/64 GB":1670},
+"HONOR X6a": {"4 GB/128 GB":1413,"4 GB/64 GB":1156},
+"HONOR X6b": {"6 GB/256 GB":1691,"4 GB/128 GB":1349},
+"HONOR X7": {"4 GB/128 GB":1252},
+"HONOR X7a": {"4 GB/128 GB":279,"6 GB/128 GB":1306},
+"HONOR X7b": {"8 GB/128 GB":1691,"8 GB/256 GB":1959},
+"HONOR X7c": {"6 GB/128 GB":2568,"8 GB/256 GB":2889},
+"HONOR X8": {"6 GB/128 GB":1884},
+"HONOR X8a": {"6 GB/128 GB":1819},
+"HONOR X8b": {"8 GB/128 GB":3157,"8 GB/256 GB":3735},
+"HONOR X8c": {"8 GB/512 GB":4163,"8 GB/128 GB":2868,"8 GB/256 GB":3243,"6 GB/128 GB":2836},
+"HONOR X9a": {"6 GB/128 GB":3478,"8 GB/256 GB":3970},
+"HONOR X9b": {"8 GB/256 GB":3949,"12 GB/256 GB":4238},
+"HONOR X9c": {"8 GB/256 GB":4922,"12 GB/256 GB":5254,"12 GB/512 GB":5789},
+"HONOR X9c Smart": {"8 GB/256 GB":3660,"12 GB/256 GB":3874},
+"HONOR X9d": {"12 GB/512 GB":9352,"12 GB/256 GB":8432}
+  },
+  // Defect logic, measured on iPhone 13 128GB (base 9200 UAH).
+  // "pct" = percentage deduction from the max price for that answer.
+  factors: {
+    screen: {
+      label: "Екран", question: "У якому стані екран?",
+      tiers: [
+        {label:"Цілком відсутні будь-які сліди експлуатації", hint:"Мікроподряпини не допускаються", pct:0},
+        {label:"Є пара дрібних подряпин", hint:"Не більше трьох дрібних подряпин, видимих при хорошому освітленні під певним кутом", pct:5.43},
+        {label:"Дрібні подряпини, що покривають не більше 50% дисплея", hint:"Помітні при хорошому освітленні під певним кутом, не чіпляються нігтем", pct:14.89},
+        {label:"Глибокі та численні подряпини", hint:"Глибокі — визначаються на дотик; численні — покривають понад 50%", pct:33.80},
+        {label:"Сколи, тріщини, відшарування", hint:"", pct:62.17},
+      ]
+    },
+    body: {
+      label: "Корпус", question: "У якому стані корпус?",
+      tiers: [
+        {label:"Цілком відсутні будь-які сліди експлуатації", hint:"Мікроподряпини не допускаються", pct:0},
+        {label:"Є пара дрібних подряпин", hint:"Не більше 3 видимих дрібних подряпин на корпусі", pct:5.43},
+        {label:"Дрібні подряпини, точкові сколи та незначні потертості", hint:"Покривають не більше 50% корпусу", pct:14.89},
+        {label:"Глибокі подряпини, сколи, вм'ятини та інші сліди ударів", hint:"Плями, тріщини до 5мм, відшарування, численні подряпини (понад 50% корпусу)", pct:33.80},
+        {label:"Розбитий або деформований", hint:"", pct:43.26},
+      ]
+    },
+    display: {
+      label: "Дефекти зображення", question: "Чи є дефекти зображення?",
+      tiers: [
+        {label:"Ідеальне зображення без дефектів", hint:"", pct:0},
+        {label:"Незначні засвіти", hint:"Помітні лише на однотонному тлі", pct:33.80},
+        {label:"Смуги та плями, що перекривають зображення", hint:"", pct:81.09},
+      ]
+    },
+    battery: {
+      label: "Акумулятор", question: "Стан акумулятора",
+      tiers: [
+        {label:"Більше або дорівнює 85%", hint:"", pct:0},
+        {label:"Менше 85%", hint:"", pct:8.75},
+        {label:"«Помилка» / не визначається", hint:"", pct:12.16},
+      ]
+    },
+    sim: {
+      label: "SIM-картки", question: "Пристрій працює з локальними SIM-картками?",
+      tiers: [
+        {label:"Так, працює з будь-якими локальними SIM", hint:"Пристрій не прив'язаний до оператора (не R-SIM)", pct:0},
+        {label:"Ні, прив'язаний до оператора / R-SIM", hint:"", pct:85.82},
+      ]
+    },
+    functional: {
+      label: "Функції", question: "Чи всі функції працюють справно?",
+      tiers: [
+        {label:"Усі функції працюють справно", hint:"", pct:0},
+        {label:"Не працює одна або більше функцій", hint:"WiFi/Bluetooth, датчики, камера, Face/Touch ID, мікрофон/динаміки, вібро, роз'єм ЗП, кнопки, екран частково не реагує", pct:76.36},
+      ]
+    },
+    completeness: {
+      label: "Комплектація", question: "Комплектація",
+      tiers: [
+        {label:"Повна заводська комплектація без пошкоджень", hint:"Коробка, кабель, ЗП (якщо передбачено виробником)", pct:0},
+        {label:"Часткова комплектація", hint:"Є коробка та/або кабель та/або ЗП", pct:0},
+        {label:"Комплектація відсутня", hint:"", pct:0},
+      ]
+    },
+  },
+  // Additional deduction (%) applied per M360 test that comes back "Failed".
+  // Values are placeholders — tune them in "Ціни та сценарії".
+  apiEndpoint: "/api/diagnostics-status",
+  testDefects: {
+    TouchScreen: {label:"Сенсорний екран", pct:40},
+    Multitouch: {label:"Мультитач", pct:15},
+    Color: {label:"Биті пікселі", pct:20},
+    Lcd: {label:"LCD-дефекти", pct:25},
+    Touch3D: {label:"3D Touch", pct:5},
+    SecondaryTouchScreen: {label:"Сенсорний екран (другий)", pct:40},
+    SecondaryMultitouch: {label:"Мультитач (другий)", pct:15},
+    SecondaryColor: {label:"Биті пікселі (другий екран)", pct:20},
+    SecondaryLcd: {label:"LCD-дефекти (другий екран)", pct:25},
+    Speaker: {label:"Динамік", pct:10},
+    Microphone: {label:"Мікрофон", pct:10},
+    Headphones: {label:"Роз'єм навушників", pct:3},
+    HardwareButton: {label:"Кнопки", pct:15},
+    Battery: {label:"Батарея", pct:15},
+    RearCamera: {label:"Основна камера", pct:20},
+    FrontCamera: {label:"Фронтальна камера", pct:10},
+    Autofocus: {label:"Автофокус", pct:8},
+    Flash: {label:"Спалах", pct:5},
+    Vibration: {label:"Вібромотор", pct:5},
+    Storage: {label:"Накопичувач", pct:5},
+    Pen: {label:"Стилус", pct:8},
+    Biometric: {label:"Біометричний сенсор", pct:10},
+    Accelerometer: {label:"Акселерометр", pct:8},
+    Gyroscope: {label:"Гіроскоп", pct:8},
+    Proximity: {label:"Датчик наближення", pct:5},
+    Light: {label:"Датчик освітлення", pct:3},
+    Magnetic: {label:"Магнітний датчик", pct:3},
+    Lidar: {label:"LiDAR-сканер", pct:8},
+    Call: {label:"Дзвінок", pct:10},
+    Charge: {label:"Зарядка", pct:20},
+    Wifi: {label:"Wi-Fi", pct:15},
+    Bluetooth: {label:"Bluetooth", pct:10},
+    Gps: {label:"GPS", pct:8},
+    Nfc: {label:"NFC", pct:5},
+  },
+};
+
+const FACTOR_ORDER = ["functional","sim","battery","screen","display","body","completeness"];
+const STORAGE_KEY = "iphoneTradeInConfig_v1";
+
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+// ---- active, possibly-edited config (loaded from localStorage if present) ----
+let CONFIG = null;
+let hasSavedOverride = false;
+try{
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw){
+    CONFIG = JSON.parse(raw);
+    hasSavedOverride = true;
+  }
+}catch(e){ /* ignore corrupt storage */ }
+if (!CONFIG) CONFIG = deepClone(DEFAULT_CONFIG);
+// Backward compatibility: older saved configs (before the testing step existed)
+// won't have these fields yet — fall back to defaults for anything missing.
+if (!CONFIG.testDefects) CONFIG.testDefects = deepClone(DEFAULT_CONFIG.testDefects);
+if (!CONFIG.apiEndpoint) CONFIG.apiEndpoint = DEFAULT_CONFIG.apiEndpoint;
+
+let dirty = false;
+
+const state = {
+  brand: null,
+  model: null,
+  storage: null,
+  functional: 0,
+  sim: 0,
+  battery: 0,
+  screen: 0,
+  display: 0,
+  body: 0,
+  completeness: 0,
+};
+
+// ---- wizard / testing-step state (not part of CONFIG, not persisted) ----
+const wizard = {
+  step: 1,               // 1 = prelim calc, 2 = testing, 3 = result
+  imei: '',
+  prelimAmount: 0,        // final amount carried over from step 1
+  prelimDeviceLabel: '',
+  testResults: null,      // { tests: [{testId, result}], ... } from M360, once received
+  overrides: {},          // testId -> false means "manually dismissed / not confirmed"
+  pollTimer: null,
+  pollAttempts: 0,
+};
+
+const fmt = n => Math.round(n).toLocaleString('uk-UA').replace(/,/g,' ') + ' грн';
+const mult = pct => 1 - (Number(pct)||0)/100;
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ============================================================
+// CALCULATOR TAB
+// ============================================================
+function buildOptionGroup(containerId, tiers, stateKey){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  if (state[stateKey] >= tiers.length) state[stateKey] = 0;
+  tiers.forEach((opt, idx) => {
+    const wrap = document.createElement('label');
+    wrap.className = 'opt' + (state[stateKey] === idx ? ' selected' : '');
+    wrap.innerHTML = `
+      <input type="radio" name="${stateKey}" ${state[stateKey]===idx?'checked':''}>
+      <span class="opt-text">${opt.label}${opt.hint ? `<span class="hint">${opt.hint}</span>` : ''}</span>
+    `;
+    wrap.querySelector('input').addEventListener('change', () => {
+      state[stateKey] = idx;
+      buildOptionGroup(containerId, tiers, stateKey);
+      recalc();
+    });
+    container.appendChild(wrap);
+  });
+}
+
+function getModelBrand(model){
+  return model && model.includes(' ') ? model.split(' ')[0] : model;
+}
+
+function getAllBrands(){
+  const brands = [];
+  Object.keys(CONFIG.prices).forEach(m => {
+    const b = getModelBrand(m);
+    if (!brands.includes(b)) brands.push(b);
+  });
+  return brands;
+}
+
+function populateBrandSelect(){
+  const brandSelect = document.getElementById('brandSelect');
+  const prevBrand = state.brand;
+  brandSelect.innerHTML = '';
+  const brands = getAllBrands();
+  brands.forEach(brand => {
+    const o = document.createElement('option');
+    o.value = brand; o.textContent = brand;
+    brandSelect.appendChild(o);
+  });
+  state.brand = brands.includes(prevBrand) ? prevBrand : brands[0];
+  brandSelect.value = state.brand;
+  brandSelect.onchange = () => {
+    state.brand = brandSelect.value;
+    populateModelSelect();
+    populateStorageSelect();
+    recalc();
+  };
+}
+
+function populateModelSelect(){
+  const modelSelect = document.getElementById('modelSelect');
+  const prevModel = state.model;
+  modelSelect.innerHTML = '';
+  const models = Object.keys(CONFIG.prices).filter(m => getModelBrand(m) === state.brand);
+  models.forEach(model => {
+    const o = document.createElement('option');
+    o.value = model;
+    const label = model.startsWith(state.brand + ' ') ? model.slice(state.brand.length + 1) : model;
+    o.textContent = label;
+    modelSelect.appendChild(o);
+  });
+  state.model = models.includes(prevModel) ? prevModel : models[0];
+  modelSelect.value = state.model;
+  modelSelect.onchange = () => {
+    state.model = modelSelect.value;
+    populateStorageSelect();
+    recalc();
+  };
+}
+
+function populateStorageSelect(){
+  const storageSelect = document.getElementById('storageSelect');
+  const prevStorage = state.storage;
+  storageSelect.innerHTML = '';
+  const storages = Object.keys(CONFIG.prices[state.model] || {});
+  storages.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    storageSelect.appendChild(o);
+  });
+  state.storage = storages.includes(prevStorage) ? prevStorage : storages[0];
+  storageSelect.value = state.storage;
+  storageSelect.onchange = () => {
+    state.storage = storageSelect.value;
+    recalc();
+  };
+}
+
+function renderCalculatorGroups(){
+  buildOptionGroup('functionalGroup', CONFIG.factors.functional.tiers, 'functional');
+  buildOptionGroup('simGroup', CONFIG.factors.sim.tiers, 'sim');
+  buildOptionGroup('batteryGroup', CONFIG.factors.battery.tiers, 'battery');
+  buildOptionGroup('screenGroup', CONFIG.factors.screen.tiers, 'screen');
+  buildOptionGroup('displayGroup', CONFIG.factors.display.tiers, 'display');
+  buildOptionGroup('bodyGroup', CONFIG.factors.body.tiers, 'body');
+  buildOptionGroup('completenessGroup', CONFIG.factors.completeness.tiers, 'completeness');
+}
+
+function recalc(){
+  if (!state.brand || !getAllBrands().includes(state.brand)) { populateBrandSelect(); populateModelSelect(); populateStorageSelect(); }
+  else if (!state.model || !CONFIG.prices[state.model]) { populateModelSelect(); populateStorageSelect(); }
+  const base = CONFIG.prices[state.model][state.storage];
+  const factors = {};
+  let rawTotalPct = 0;
+  FACTOR_ORDER.forEach(k => {
+    const tier = CONFIG.factors[k].tiers[state[k]] || CONFIG.factors[k].tiers[0];
+    const pct = Number(tier.pct) || 0;
+    factors[k] = pct;
+    rawTotalPct += pct;
+  });
+  const clampedPct = Math.min(100, rawTotalPct);
+  const finalMult = 1 - clampedPct/100;
+  const final = base * finalMult;
+
+  document.getElementById('deviceLabel').textContent = `${state.model}, ${state.storage}`;
+  document.getElementById('amountLabel').textContent = fmt(final);
+  if (clampedPct > 0){
+    document.getElementById('baseLabel').innerHTML = `Максимальна ціна (ідеальний стан): <s>${fmt(base)}</s>`;
+  } else {
+    document.getElementById('baseLabel').textContent = `Це і є максимальна ціна викупу`;
+  }
+
+  const breakdown = document.getElementById('breakdown');
+  breakdown.innerHTML = '';
+  Object.entries(factors).forEach(([k,pct]) => {
+    const row = document.createElement('div');
+    row.className = 'breakdown-row' + (pct > 0 ? ' active' : '');
+    const pctText = pct > 0 ? `−${pct % 1 === 0 ? pct : pct.toFixed(1)}%` : '0%';
+    const pctClass = pct > 0 ? 'neg' : 'zero';
+    row.innerHTML = `<span>${CONFIG.factors[k].label}</span><span class="pct ${pctClass}">${pctText}</span>`;
+    breakdown.appendChild(row);
+  });
+  const totalRow = document.createElement('div');
+  totalRow.className = 'total-row';
+  totalRow.innerHTML = `<span>Загальна знижка</span><span>−${clampedPct % 1 === 0 ? clampedPct : clampedPct.toFixed(1)}%</span>`;
+  breakdown.appendChild(totalRow);
+
+  const totalNote = document.getElementById('totalNote');
+  if (rawTotalPct > 100){
+    totalNote.innerHTML = `Сума відсотків знижки за обраними відповідями (${rawTotalPct.toFixed(1)}%) перевищує 100%, тому підсумкова знижка обмежена значенням <b>100%</b>.`;
+  } else if (clampedPct > 0){
+    totalNote.innerHTML = `Відсотки знижки за всіма обраними відповідями підсумовуються: <b>−${clampedPct % 1 === 0 ? clampedPct : clampedPct.toFixed(1)}%</b> від максимальної ціни.`;
+  } else {
+    totalNote.innerHTML = `Жодних дефектів не обрано — показана максимальна ціна викупу.`;
+  }
+}
+
+// ============================================================
+// SCENARIOS TAB — factor (defect logic) editor
+// ============================================================
+function renderFactorsGrid(){
+  const grid = document.getElementById('factorsGrid');
+  grid.innerHTML = '';
+  FACTOR_ORDER.forEach(key => {
+    const f = CONFIG.factors[key];
+    const card = document.createElement('div');
+    const noEffect = key === 'completeness';
+    card.innerHTML = `<h3 style="font-size:13px;margin:0 0 8px;color:var(--purple-dark);">${f.label}${noEffect ? ' <span class="no-effect-badge">не впливає на ціну</span>' : ''}</h3>`;
+    f.tiers.forEach((tier, idx) => {
+      const row = document.createElement('div');
+      row.className = 'factor-tier';
+      row.innerHTML = `
+        <span class="tier-label">${tier.label}</span>
+        <span class="pct-input-wrap">−<input type="number" min="0" max="100" step="0.01" value="${tier.pct}">%</span>
+      `;
+      const input = row.querySelector('input');
+      input.addEventListener('input', () => {
+        let v = parseFloat(input.value);
+        if (isNaN(v)) v = 0;
+        v = Math.max(0, Math.min(100, v));
+        tier.pct = v;
+        markDirty();
+        recalc();
+      });
+      card.appendChild(row);
+    });
+    grid.appendChild(card);
+  });
+}
+
+// ============================================================
+// WIZARD NAVIGATION (step 1 prelim -> step 2 testing -> step 3 result)
+// ============================================================
+function goToStep(n){
+  wizard.step = n;
+  document.getElementById('step1Prelim').classList.toggle('active', n===1);
+  document.getElementById('step2Testing').classList.toggle('active', n===2);
+  document.getElementById('step3Result').classList.toggle('active', n===3);
+  [1,2,3].forEach(i => {
+    document.getElementById('seg'+i).classList.toggle('done', n>i || (n===i));
+    document.getElementById('segLabel'+i).classList.toggle('on', n===i);
+  });
+  if (n===2){
+    document.getElementById('prelimCarryAmount').textContent = fmt(wizard.prelimAmount);
+    renderQrCalc();
+  }
+  if (n===3){
+    renderResultStep();
+  }
+}
+
+document.getElementById('toTestingBtn').addEventListener('click', () => {
+  // Capture the step-1 outcome to carry forward.
+  const base = CONFIG.prices[state.model][state.storage];
+  let rawTotalPct = 0;
+  FACTOR_ORDER.forEach(k => {
+    const tier = CONFIG.factors[k].tiers[state[k]] || CONFIG.factors[k].tiers[0];
+    rawTotalPct += Number(tier.pct) || 0;
+  });
+  const clampedPct = Math.min(100, rawTotalPct);
+  wizard.prelimAmount = base * (1 - clampedPct/100);
+  wizard.prelimDeviceLabel = `${state.model}, ${state.storage}`;
+  wizard.testResults = null;
+  wizard.overrides = {};
+  document.getElementById('imeiInputCalc').value = wizard.imei || '';
+  validateImeiCalc();
+  goToStep(2);
+});
+document.getElementById('backToStep1Btn').addEventListener('click', () => { stopPollingCalc(); goToStep(1); });
+document.getElementById('backToStep2Btn').addEventListener('click', () => goToStep(2));
+document.getElementById('skipTestingBtn').addEventListener('click', () => { stopPollingCalc(); goToStep(3); });
+document.getElementById('skipTestingManualBtn').addEventListener('click', () => {
+  stopPollingCalc();
+  wizard.testResults = { tests: [] };
+  goToStep(3);
+});
+
+// ============================================================
+// STEP 2 — testing (IMEI, QR, poll M360 via the proxy endpoint)
+// ============================================================
+function luhnValidCalc(imei){
+  if(!/^\d{15}$/.test(imei)) return false;
+  let sum = 0;
+  for(let i=0;i<15;i++){
+    let d = parseInt(imei[i],10);
+    if(i % 2 === 1){ d *= 2; if(d>9) d -= 9; }
+    sum += d;
+  }
+  return sum % 10 === 0;
+}
+
+function validateImeiCalc(){
+  const val = document.getElementById('imeiInputCalc').value.replace(/\D/g,'').slice(0,15);
+  document.getElementById('imeiInputCalc').value = val;
+  const hint = document.getElementById('imeiHintCalc');
+  const skipBtn = document.getElementById('skipTestingBtn');
+  wizard.imei = val;
+  if (val.length < 15){
+    hint.textContent = val.length === 0 ? '15 цифр, без пробілів' : `Введено ${val.length} з 15 цифр`;
+  } else if (!luhnValidCalc(val)){
+    hint.textContent = 'Схоже, IMEI введено з помилкою — перевірте номер';
+  } else {
+    hint.textContent = 'IMEI коректний';
+    renderQrCalc();
+    startPollingCalc(val);
+  }
+  skipBtn.disabled = !wizard.testResults;
+}
+document.getElementById('imeiInputCalc').addEventListener('input', validateImeiCalc);
+
+function renderQrCalc(){
+  const box = document.getElementById('qrcodeCalc');
+  box.innerHTML = '';
+  new QRCode(box, {
+    text: 'https://m360soft.com/app/download?ref=renewt-tradein',
+    width: 148, height: 148,
+    colorDark: '#262626', colorLight: '#ffffff',
+  });
+}
+
+function stopPollingCalc(){
+  if (wizard.pollTimer){ clearInterval(wizard.pollTimer); wizard.pollTimer = null; }
+}
+
+function startPollingCalc(imei){
+  stopPollingCalc();
+  wizard.pollAttempts = 0;
+  document.getElementById('waitingPillCalc').hidden = false;
+  document.getElementById('waitingTextCalc').textContent = 'Очікуємо результати діагностики…';
+  wizard.pollTimer = setInterval(() => pollCalc(imei), 3000);
+  pollCalc(imei);
+}
+
+async function pollCalc(imei){
+  wizard.pollAttempts++;
+  if (wizard.pollAttempts > 60){
+    stopPollingCalc();
+    document.getElementById('waitingTextCalc').textContent = 'Діагностика ще не завершена — можна перейти вручну або зачекати';
+    return;
+  }
+  let data;
+  try{
+    const res = await fetch(CONFIG.apiEndpoint, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ imei })
+    });
+    data = await res.json();
+  }catch(e){ return; }
+
+  if (!data || !data.hasDiagnostics) return;
+
+  stopPollingCalc();
+  document.getElementById('waitingPillCalc').hidden = true;
+  wizard.testResults = data;
+  document.getElementById('skipTestingBtn').disabled = false;
+
+  const list = document.getElementById('testMiniList');
+  list.hidden = false;
+  list.innerHTML = '';
+  data.tests.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'test-mini-row';
+    const label = (CONFIG.testDefects[t.testId] && CONFIG.testDefects[t.testId].label) || t.testId;
+    const stClass = t.result === 'Passed' ? 'pass' : (t.result === 'Failed' ? 'fail' : 'pending');
+    const stText = t.result === 'Passed' ? 'пройдено' : (t.result === 'Failed' ? 'провалено' : t.result);
+    row.innerHTML = `<span>${label}</span><span class="st ${stClass}">${stText}</span>`;
+    list.appendChild(row);
+  });
+}
+
+// ============================================================
+// STEP 3 — final result (prelim price + configurable per-defect %)
+// ============================================================
+function renderResultStep(){
+  const failedTests = (wizard.testResults && wizard.testResults.tests || []).filter(t => t.result === 'Failed');
+  const passedTests = (wizard.testResults && wizard.testResults.tests || []).filter(t => t.result === 'Passed');
+
+  const rowsWrap = document.getElementById('defectRows');
+  rowsWrap.innerHTML = '';
+  document.getElementById('noDefectsNote').hidden = failedTests.length > 0;
+
+  let extraPct = 0;
+  failedTests.forEach(t => {
+    if (!(t.testId in wizard.overrides)) wizard.overrides[t.testId] = true; // confirmed by default
+    const confirmed = wizard.overrides[t.testId];
+    const cfg = CONFIG.testDefects[t.testId] || { label: t.testId, pct: 0 };
+    if (confirmed) extraPct += Number(cfg.pct) || 0;
+
+    const row = document.createElement('label');
+    row.className = 'defect-row';
+    row.innerHTML = `
+      <input type="checkbox" ${confirmed ? 'checked' : ''}>
+      <span class="defect-info">
+        <span class="name">${cfg.label}</span>
+        <span class="sub">${confirmed ? 'Підтверджено тестуванням' : 'Позначено як «не підтверджено» — знижку прибрано'}</span>
+      </span>
+      <span class="defect-pct ${confirmed ? '' : 'off'}">−${cfg.pct}%</span>
+    `;
+    row.querySelector('input').addEventListener('change', (e) => {
+      wizard.overrides[t.testId] = e.target.checked;
+      renderResultStep();
+    });
+    rowsWrap.appendChild(row);
+  });
+
+  const passedCard = document.getElementById('passedCard');
+  const passedChips = document.getElementById('passedChips');
+  passedChips.innerHTML = '';
+  if (passedTests.length){
+    passedCard.hidden = false;
+    passedTests.forEach(t => {
+      const chip = document.createElement('span');
+      chip.className = 'passed-chip';
+      chip.textContent = (CONFIG.testDefects[t.testId] && CONFIG.testDefects[t.testId].label) || t.testId;
+      passedChips.appendChild(chip);
+    });
+  } else {
+    passedCard.hidden = true;
+  }
+
+  extraPct = Math.min(100, extraPct);
+  const finalAmount = wizard.prelimAmount * (1 - extraPct/100);
+
+  document.getElementById('finalDeviceLabel').textContent = wizard.prelimDeviceLabel;
+  document.getElementById('finalAmountLabel').textContent = fmt(finalAmount);
+  document.getElementById('finalBaseLabel').innerHTML = extraPct > 0
+    ? `Попередня оцінка: <s>${fmt(wizard.prelimAmount)}</s>`
+    : `Тестування не змінило попередню оцінку`;
+
+  const bd = document.getElementById('finalBreakdown');
+  bd.innerHTML = `
+    <div class="breakdown-row active"><span>Попередня оцінка</span><span>${fmt(wizard.prelimAmount)}</span></div>
+    <div class="breakdown-row ${extraPct>0?'active':''}"><span>Додаткова знижка за тестуванням</span><span class="pct ${extraPct>0?'neg':'zero'}">−${extraPct % 1 === 0 ? extraPct : extraPct.toFixed(1)}%</span></div>
+    <div class="total-row"><span>Підсумкова ціна викупу</span><span>${fmt(finalAmount)}</span></div>
+  `;
+}
+
+// ============================================================
+// SCENARIOS TAB — price table editor
+// ============================================================
+let priceSearchTerm = '';
+
+function renderModelDatalist(){
+  const dl = document.getElementById('modelDatalist');
+  dl.innerHTML = '';
+  Object.keys(CONFIG.prices).forEach(m => {
+    const o = document.createElement('option');
+    o.value = m;
+    dl.appendChild(o);
+  });
+}
+
+function renderPriceTable(){
+  const tbody = document.getElementById('priceTableBody');
+  tbody.innerHTML = '';
+  const term = priceSearchTerm.trim().toLowerCase();
+  Object.keys(CONFIG.prices).forEach(model => {
+    if (term && !model.toLowerCase().includes(term)) return;
+    const storages = CONFIG.prices[model];
+    Object.keys(storages).forEach(storage => {
+      const tr = document.createElement('tr');
+      const priceVal = storages[storage];
+      tr.innerHTML = `
+        <td class="model-cell">${model}</td>
+        <td>${storage}</td>
+        <td><input type="number" min="0" step="1" value="${priceVal}"></td>
+        <td><button type="button" class="row-del" title="Видалити рядок">✕</button></td>
+      `;
+      const priceInput = tr.querySelector('input');
+      priceInput.addEventListener('input', () => {
+        let v = parseFloat(priceInput.value);
+        if (isNaN(v) || v < 0) v = 0;
+        CONFIG.prices[model][storage] = v;
+        markDirty();
+        if (state.model === model && state.storage === storage) recalc();
+      });
+      tr.querySelector('.row-del').addEventListener('click', () => {
+        delete CONFIG.prices[model][storage];
+        if (Object.keys(CONFIG.prices[model]).length === 0){
+          delete CONFIG.prices[model];
+        }
+        markDirty();
+        renderPriceTable();
+        renderModelDatalist();
+        populateBrandSelect();
+        populateModelSelect();
+        populateStorageSelect();
+        recalc();
+      });
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+document.getElementById('priceSearch').addEventListener('input', (e) => {
+  priceSearchTerm = e.target.value;
+  renderPriceTable();
+});
+
+document.getElementById('addRowForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const model = form.elements.newModel.value.trim();
+  const storage = form.elements.newStorage.value.trim();
+  const price = parseFloat(form.elements.newPrice.value);
+  if (!model || !storage || isNaN(price) || price < 0) return;
+  if (!CONFIG.prices[model]) CONFIG.prices[model] = {};
+  CONFIG.prices[model][storage] = Math.round(price);
+  markDirty();
+  form.reset();
+  priceSearchTerm = '';
+  document.getElementById('priceSearch').value = '';
+  state.brand = getModelBrand(model);
+  state.model = model;
+  state.storage = storage;
+  renderPriceTable();
+  renderModelDatalist();
+  populateBrandSelect();
+  populateModelSelect();
+  populateStorageSelect();
+  recalc();
+});
+
+// ============================================================
+// ADMIN — test defect % table + API endpoint field
+// ============================================================
+document.getElementById('apiEndpointInput').addEventListener('input', (e) => {
+  CONFIG.apiEndpoint = e.target.value.trim();
+  markDirty();
+});
+
+let defectSearchTerm = '';
+document.getElementById('defectSearch').addEventListener('input', (e) => {
+  defectSearchTerm = e.target.value;
+  renderDefectTable();
+});
+
+function renderDefectTable(){
+  document.getElementById('apiEndpointInput').value = CONFIG.apiEndpoint || '';
+  const tbody = document.getElementById('defectTableBody');
+  tbody.innerHTML = '';
+  const term = defectSearchTerm.trim().toLowerCase();
+  Object.keys(CONFIG.testDefects).forEach(testId => {
+    const cfg = CONFIG.testDefects[testId];
+    if (term && !testId.toLowerCase().includes(term) && !cfg.label.toLowerCase().includes(term)) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="model-cell">${testId}</td>
+      <td><input type="text" value="${cfg.label}"></td>
+      <td><input type="number" min="0" max="100" step="0.1" value="${cfg.pct}"></td>
+    `;
+    const labelInput = tr.querySelector('input[type=text]');
+    const pctInput = tr.querySelector('input[type=number]');
+    labelInput.addEventListener('input', () => {
+      cfg.label = labelInput.value;
+      markDirty();
+    });
+    pctInput.addEventListener('input', () => {
+      let v = parseFloat(pctInput.value);
+      if (isNaN(v)) v = 0;
+      cfg.pct = Math.max(0, Math.min(100, v));
+      markDirty();
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// ============================================================
+// SAVE / RESET / EXPORT / IMPORT
+// ============================================================
+function markDirty(){
+  dirty = true;
+  const pill = document.getElementById('statusPill');
+  pill.textContent = 'Є незбережені зміни';
+  pill.className = 'status-pill dirty';
+}
+function markSaved(){
+  dirty = false;
+  const pill = document.getElementById('statusPill');
+  pill.textContent = 'Збережено';
+  pill.className = 'status-pill saved';
+}
+
+document.getElementById('saveBtn').addEventListener('click', () => {
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(CONFIG));
+    hasSavedOverride = true;
+    markSaved();
+  }catch(e){
+    alert('Не вдалося зберегти зміни у цьому браузері: ' + e.message);
+  }
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm('Скинути всі ціни та коефіцієнти до типових значень? Збережені зміни у цьому браузері будуть видалені.')) return;
+  CONFIG = deepClone(DEFAULT_CONFIG);
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  hasSavedOverride = false;
+  priceSearchTerm = '';
+  defectSearchTerm = '';
+  document.getElementById('priceSearch').value = '';
+  document.getElementById('defectSearch').value = '';
+  renderAll();
+  markSaved();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(CONFIG, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'iphone_tradein_config.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      if (!parsed.prices || !parsed.factors) throw new Error('Невірна структура файлу (очікуються поля "prices" і "factors").');
+      if (!parsed.testDefects) parsed.testDefects = deepClone(DEFAULT_CONFIG.testDefects);
+      if (!parsed.apiEndpoint) parsed.apiEndpoint = DEFAULT_CONFIG.apiEndpoint;
+      CONFIG = parsed;
+      priceSearchTerm = '';
+      document.getElementById('priceSearch').value = '';
+      renderAll();
+      markDirty();
+      alert('Дані імпортовано. Натисніть «Зберегти зміни», щоб зберегти їх у цьому браузері.');
+    }catch(err){
+      alert('Не вдалося прочитати файл: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+// ============================================================
+// FULL RENDER / INIT
+// ============================================================
+function renderAll(){
+  populateBrandSelect();
+  populateModelSelect();
+  populateStorageSelect();
+  renderCalculatorGroups();
+  renderFactorsGrid();
+  renderModelDatalist();
+  renderPriceTable();
+  renderDefectTable();
+  recalc();
+}
+
+renderAll();
+if (hasSavedOverride) markSaved();
+</script>
+</body>
+</html>
