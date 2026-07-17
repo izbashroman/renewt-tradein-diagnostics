@@ -195,10 +195,15 @@
   .imei-row input{flex:1;}
   .qr-box{display:flex;flex-direction:column;align-items:center;padding:18px 0 4px;}
   #qrcodeCalc{background:#fff;padding:12px;border-radius:12px;border:1px solid var(--border);}
+  .qr-box-dual{display:flex;justify-content:center;gap:18px;padding:14px 0 4px;flex-wrap:wrap;}
+  .qr-store-item{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .qr-store-item .qr-img-wrap{background:#fff;padding:10px;border-radius:12px;border:1px solid var(--border);}
+  .qr-store-item .qr-store-label{font-size:12px;font-weight:600;color:var(--muted);}
   .waiting-pill{
     display:flex;align-items:center;gap:9px;margin-top:16px;padding:11px 14px;
     background:#FFF8EC;border:1px solid #FFE3B0;border-radius:10px;font-size:13px;color:#8a5a00;
   }
+  .waiting-pill[hidden]{display:none;}
   .waiting-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--yellow);flex:none;
     animation:pulseDot 1.5s infinite;}
   @keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(255,157,0,.5);}70%{box-shadow:0 0 0 7px rgba(255,157,0,0);}100%{box-shadow:0 0 0 0 rgba(255,157,0,0);}}
@@ -376,7 +381,16 @@
           <div class="card" style="margin-top:16px;">
             <h2>Скануйте QR і пройдіть тест</h2>
             <p class="section-desc">Відскануйте QR-код камерою телефона, встановіть додаток діагностики M360 і пройдіть тест. Ця сторінка сама оновиться, коли результат надійде.</p>
-            <div class="qr-box"><div id="qrcodeCalc"></div></div>
+            <div class="qr-box-dual">
+              <div class="qr-store-item">
+                <div class="qr-img-wrap" id="qrcodeCalcIOS"></div>
+                <span class="qr-store-label">App Store (iOS)</span>
+              </div>
+              <div class="qr-store-item">
+                <div class="qr-img-wrap" id="qrcodeCalcAndroid"></div>
+                <span class="qr-store-label">Google Play (Android)</span>
+              </div>
+            </div>
             <div class="waiting-pill" id="waitingPillCalc" hidden><span class="dot"></span><span id="waitingTextCalc">Очікуємо результати діагностики…</span></div>
             <div class="test-mini-list" id="testMiniList" hidden></div>
           </div>
@@ -404,6 +418,7 @@
             <p class="section-desc">Відскануйте QR — відкриється сторінка для завантаження 6 фото прямо з камери телефона. Результат перевірки AI автоматично зʼявиться тут, на цьому екрані.</p>
             <div class="qr-box"><div id="qrcodePhotos"></div></div>
             <div class="waiting-pill" id="waitingPillPhotos" hidden><span class="dot"></span><span id="waitingTextPhotos">Очікуємо фото з телефону…</span></div>
+            <div class="photo-grid" id="phoneThumbGrid" hidden style="margin-top:14px;"></div>
           </div>
           <div class="card" style="margin-top:16px;">
             <h2>Або завантажте з цього пристрою</h2>
@@ -1594,6 +1609,7 @@ document.getElementById('toTestingBtn').addEventListener('click', () => {
   wizard.aiAnalysis = null;
   wizard.visualOverrides = {};
   wizard.photoSessionId = null;
+  document.getElementById('phoneThumbGrid').hidden = true;
   document.getElementById('imeiInputCalc').value = wizard.imei || '';
   validateImeiCalc();
   goToStep(2);
@@ -1646,14 +1662,16 @@ function validateImeiCalc(){
 }
 document.getElementById('imeiInputCalc').addEventListener('input', validateImeiCalc);
 
+const M360_APP_STORE_URL = 'https://apps.apple.com/ua/app/m360-diagnostics/id1537787194?l=ru';
+const M360_GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.opoint.android&pcampaignid=web_share';
+
 function renderQrCalc(){
-  const box = document.getElementById('qrcodeCalc');
-  box.innerHTML = '';
-  new QRCode(box, {
-    text: 'https://m360soft.com/app/download?ref=renewt-tradein',
-    width: 148, height: 148,
-    colorDark: '#262626', colorLight: '#ffffff',
-  });
+  const iosBox = document.getElementById('qrcodeCalcIOS');
+  const androidBox = document.getElementById('qrcodeCalcAndroid');
+  iosBox.innerHTML = '';
+  androidBox.innerHTML = '';
+  new QRCode(iosBox, { text: M360_APP_STORE_URL, width: 120, height: 120, colorDark: '#262626', colorLight: '#ffffff' });
+  new QRCode(androidBox, { text: M360_GOOGLE_PLAY_URL, width: 120, height: 120, colorDark: '#262626', colorLight: '#ffffff' });
 }
 
 function stopPollingCalc(){
@@ -1752,8 +1770,24 @@ async function pollPhotoSession(){
     stopPhotoSessionPoll();
     document.getElementById('waitingPillPhotos').hidden = true;
     wizard.aiAnalysis = data.result;
+    renderPhoneThumbnails(data.thumbnails || {});
     renderVisualCompareRows();
   }catch(e){ /* keep polling */ }
+}
+
+function renderPhoneThumbnails(thumbnails){
+  const grid = document.getElementById('phoneThumbGrid');
+  const keys = Object.keys(thumbnails);
+  if (keys.length === 0){ grid.hidden = true; return; }
+  grid.innerHTML = '';
+  PHOTO_ZONES.forEach(z => {
+    if (!thumbnails[z.key]) return;
+    const slot = document.createElement('div');
+    slot.className = 'photo-slot filled';
+    slot.innerHTML = `<img class="thumb" src="${thumbnails[z.key]}"><div class="zone-label">${z.label}</div>`;
+    grid.appendChild(slot);
+  });
+  grid.hidden = false;
 }
 
 function renderPhotoGrid(){
@@ -1877,10 +1911,17 @@ function renderVisualCompareRows(){
     const aiIdx = ai ? Math.max(0, Math.min(f.tiers.length - 1, ai.tierIndex)) : null;
     const confidence = ai ? Math.round((ai.confidence||0) * 100) : null;
     const mismatch = ai && aiIdx !== originalIdx;
+    const aiFoundMoreDamage = ai && aiIdx > originalIdx;
+    const aiFoundLessDamage = ai && aiIdx < originalIdx;
 
     if (wizard.visualOverrides[key] == null){
-      wizard.visualOverrides[key] = (mismatch && confidence >= 70) ? aiIdx : originalIdx;
+      // AI spotted a defect that wasn't declared on step 1 — apply the extra
+      // discount automatically (manager can still revert via the dropdown).
+      // If AI sees LESS damage than declared, we don't auto-remove the
+      // discount — that needs a manual decision.
+      wizard.visualOverrides[key] = aiFoundMoreDamage ? aiIdx : originalIdx;
     }
+    const autoApplied = aiFoundMoreDamage && wizard.visualOverrides[key] === aiIdx;
 
     const card = document.createElement('div');
     card.className = 'visual-compare-card';
@@ -1888,6 +1929,8 @@ function renderVisualCompareRows(){
       <h4>${f.label}</h4>
       <div class="vc-row"><span>Вказано на кроці 1:</span><b>${f.tiers[originalIdx].label}</b></div>
       <div class="vc-row"><span>AI бачить на фото:</span><b class="${ai ? (mismatch ? 'vc-mismatch' : 'vc-match') : ''}">${ai ? `${f.tiers[aiIdx].label} (${confidence}%)` : 'немає даних'}</b></div>
+      ${autoApplied ? `<div class="vc-row"><span></span><b class="vc-mismatch">Знайдено недекларований дефект — знижку застосовано автоматично</b></div>` : ''}
+      ${aiFoundLessDamage ? `<div class="vc-row"><span></span><span>AI бачить менше пошкоджень, ніж заявлено — знижка залишена без змін, підтвердіть вручну нижче за потреби</span></div>` : ''}
       <select data-key="${key}"></select>
     `;
     const select = card.querySelector('select');

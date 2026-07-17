@@ -118,6 +118,19 @@ function renderGrid(){
   document.getElementById('submitBtn').disabled = Object.keys(photos).length === 0;
 }
 
+function drawToCanvas(img, maxDim, quality){
+  let {width, height} = img;
+  if (width > maxDim || height > maxDim){
+    const scale = maxDim / Math.max(width, height);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
 function compressImageFile(file){
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -126,18 +139,9 @@ function compressImageFile(file){
       const img = new Image();
       img.onerror = reject;
       img.onload = () => {
-        const maxDim = 1024;
-        let {width, height} = img;
-        if (width > maxDim || height > maxDim){
-          const scale = maxDim / Math.max(width, height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
-        resolve({ mediaType: 'image/jpeg', data: dataUrl.split(',')[1], previewUrl: dataUrl });
+        const dataUrl = drawToCanvas(img, 1024, 0.72);
+        const thumbUrl = drawToCanvas(img, 220, 0.5); // small copy relayed to the desktop for visual reference
+        resolve({ mediaType: 'image/jpeg', data: dataUrl.split(',')[1], previewUrl: dataUrl, thumbUrl });
       };
       img.src = reader.result;
     };
@@ -186,10 +190,13 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
       return;
     }
 
+    const thumbnails = {};
+    PHOTO_ZONES.forEach(z => { if (photos[z.key]) thumbnails[z.key] = photos[z.key].thumbUrl; });
+
     const relayRes = await fetch('/api/photo-session', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ session: SESSION, result: analyzeData.result })
+      body: JSON.stringify({ session: SESSION, result: analyzeData.result, thumbnails })
     });
     if (!relayRes.ok){
       note.textContent = 'Аналіз готовий, але не вдалося передати його на екран менеджера. Спробуйте ще раз.';
