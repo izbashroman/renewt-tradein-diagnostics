@@ -2,7 +2,11 @@
 // The M360 Bearer token lives only here, read from environment variables
 // that you set in the Vercel dashboard (never committed to the repo).
 //
-// Required environment variables (set in Vercel → Project → Settings → Environment Variables):
+// Uses getExternalReports — the QR-code flow uses the M360 MOBILE APP,
+// and mobile-app results land in "external reports", a separate table
+// from getHistory (which only covers desktop-client sessions).
+//
+// Required environment variables (set in Vercel -> Project -> Settings -> Environment Variables):
 //   M360_AUTH_CODE
 //   M360_AUTH_TOKEN
 
@@ -24,25 +28,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const m360Res = await fetch('https://m360soft.com/api/customer/v2/getHistory', {
+    const m360Res = await fetch('https://m360soft.com/api/customer/v2/getExternalReports', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authCode}-${authToken}`,
       },
       body: JSON.stringify({
-        imei: [imei],
-        hasDiagnostics: true,
-        includeOpen: true,
+        imei: imei,
         limit: 1,
         order: 'id:desc',
       }),
     });
 
     const payload = await m360Res.json();
-
-    // TEMP DEBUG — remove once the response shape is confirmed
-    console.log('M360 raw response for imei', imei, JSON.stringify(payload).slice(0, 3000));
 
     if (!m360Res.ok || !payload?.meta?.success) {
       return res.status(502).json({
@@ -53,24 +52,19 @@ export default async function handler(req, res) {
 
     const record = payload?.data?.records?.[0];
 
-    if (!record || !record.diagnosticsResults?.length) {
-      // Session not found yet, or diagnostics not finished — frontend keeps polling.
+    if (!record || !record.tests?.length) {
+      // No external report submitted yet for this IMEI — frontend keeps polling.
       return res.status(200).json({ hasDiagnostics: false });
     }
 
-    // Use the most recent diagnostics run for this session.
-    const latest = record.diagnosticsResults[record.diagnosticsResults.length - 1];
-
     return res.status(200).json({
       hasDiagnostics: true,
-      sessionId: record.sessionId,
+      uid: record.uid,
       imei: record.imei,
-      finishedTime: latest.finishedTime,
-      tests: latest.tests.map(t => ({ testId: t.testId, result: t.result })),
-      reportLinks: (record.diagnosticsReports || []).map(r => ({
-        html: r.htmlLink,
-        pdf: r.pdfLink,
-      })),
+      finishedTime: record.finishedTime,
+      friendlyName: record.friendlyName,
+      tests: record.tests.map(t => ({ testId: t.testId, result: t.result })),
+      reportLinks: record.htmlLink ? [{ html: record.htmlLink }] : [],
     });
   } catch (err) {
     console.error('M360 proxy error:', err);
