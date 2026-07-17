@@ -15,9 +15,9 @@
 const TTL_SECONDS = 600; // 10 minutes — plenty for a phone-to-desktop handoff
 
 async function kv(command, ...args) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV_REST_API_URL / KV_REST_API_TOKEN are not configured');
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) throw new Error('No KV/Upstash credentials found in environment variables');
   const path = [command, ...args].map(encodeURIComponent).join('/');
   const res = await fetch(`${url}/${path}`, {
     headers: { Authorization: `Bearer ${token}` },
