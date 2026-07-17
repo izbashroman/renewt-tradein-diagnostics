@@ -231,6 +231,30 @@
   /* ---- admin: test defects table ---- */
   .api-field{margin-bottom:16px;}
   .api-field input{width:100%;}
+
+  /* ---- photo verification step ---- */
+  .photo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+  @media (max-width: 560px){.photo-grid{grid-template-columns:1fr 1fr;}}
+  .photo-slot{
+    border:1.5px dashed var(--border);border-radius:10px;padding:8px;text-align:center;cursor:pointer;
+    position:relative;background:#fafafa;transition:border-color .15s;
+  }
+  .photo-slot:hover{border-color:var(--purple);}
+  .photo-slot.filled{border-style:solid;border-color:var(--purple);}
+  .photo-slot input{display:none;}
+  .photo-slot .thumb{width:100%;height:70px;object-fit:cover;border-radius:6px;display:block;margin-bottom:6px;}
+  .photo-slot .placeholder{height:70px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--muted);margin-bottom:6px;}
+  .photo-slot .zone-label{font-size:11px;color:var(--muted);line-height:1.3;}
+  .photo-slot.filled .zone-label{color:var(--purple-dark);font-weight:600;}
+
+  .visual-compare-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:12px;}
+  .visual-compare-card:last-child{margin-bottom:0;}
+  .visual-compare-card h4{font-size:13px;margin:0 0 8px;color:var(--purple-dark);}
+  .vc-row{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:var(--muted);}
+  .vc-row b{color:var(--text);font-weight:600;}
+  .vc-mismatch{color:var(--bad);font-weight:700;}
+  .vc-match{color:var(--good);font-weight:700;}
+  .visual-compare-card select{margin-top:8px;width:100%;}
 </style>
 </head>
 <body>
@@ -255,11 +279,13 @@
       <div class="seg" id="seg1"><div class="fill"></div></div>
       <div class="seg" id="seg2"><div class="fill"></div></div>
       <div class="seg" id="seg3"><div class="fill"></div></div>
+      <div class="seg" id="seg4"><div class="fill"></div></div>
     </div>
     <div class="steps-labels">
       <span id="segLabel1">Попередня оцінка</span>
       <span id="segLabel2">Тестування</span>
-      <span id="segLabel3">Підсумкова оцінка</span>
+      <span id="segLabel3">Фотофіксація</span>
+      <span id="segLabel4">Підсумкова оцінка</span>
     </div>
 
     <!-- ---- STEP 1: preliminary calculator ---- -->
@@ -360,7 +386,7 @@
             <div class="device">Попередня оцінка</div>
             <div class="amount" id="prelimCarryAmount">0 грн</div>
             <div class="total-note" style="margin-top:14px;">Ця сума буде скоригована за результатами тестування на наступному кроці.</div>
-            <button type="button" class="continue-btn" id="skipTestingBtn" disabled>Перейти до підсумку →</button>
+            <button type="button" class="continue-btn" id="skipTestingBtn" disabled>Перейти до фотофіксації →</button>
             <button type="button" class="link-btn" id="skipTestingManualBtn">Пропустити тестування вручну</button>
           </div>
         </div>
@@ -368,9 +394,34 @@
     </div>
     <!-- /step2Testing -->
 
-    <!-- ---- STEP 3: final result ---- -->
-    <div class="step-panel" id="step3Result">
-      <button type="button" class="back-btn" id="backToStep2Btn">← Назад до тестування</button>
+    <!-- ---- STEP 3: photo verification (AI vision) ---- -->
+    <div class="step-panel" id="step3Photos">
+      <button type="button" class="back-btn" id="backToStep2BtnPhotos">← Назад до тестування</button>
+      <div class="grid">
+        <div>
+          <div class="card">
+            <h2>Завантажте 6 фото пристрою</h2>
+            <p class="section-desc">Екран, задня панель і чотири торці. AI звірить фото з відповідями кроку 1 (екран/дефекти зображення/корпус) і підкаже, якщо стан не збігається.</p>
+            <div class="photo-grid" id="photoGrid"></div>
+            <button type="button" class="continue-btn" id="analyzePhotosBtn" style="background:var(--purple);color:#fff;" disabled>Перевірити фото за допомогою AI</button>
+            <div class="total-note" id="photoStatusNote" style="margin-top:10px;"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <h2>Результат звірки</h2>
+            <div id="visualOverrideRows"><p class="empty-note">Завантажте фото і натисніть «Перевірити», щоб побачити пропозиції AI тут.</p></div>
+          </div>
+          <button type="button" class="continue-btn" id="toResultFromPhotosBtn" style="margin-top:16px;background:var(--purple);color:#fff;">Перейти до підсумку →</button>
+          <button type="button" class="link-btn" id="skipPhotosBtn" style="color:var(--muted);">Пропустити фотофіксацію (залишити відповіді кроку 1)</button>
+        </div>
+      </div>
+    </div>
+    <!-- /step3Photos -->
+
+    <!-- ---- STEP 4: final result ---- -->
+    <div class="step-panel" id="step4Result">
+      <button type="button" class="back-btn" id="backToStep3PhotosBtn">← Назад до фотофіксації</button>
       <div class="grid">
         <div>
           <div class="card">
@@ -394,7 +445,7 @@
         </div>
       </div>
     </div>
-    <!-- /step3Result -->
+    <!-- /step4Result -->
 
   </div>
 
@@ -421,6 +472,10 @@
       <div class="api-field">
         <label class="field-label">API endpoint</label>
         <input type="text" id="apiEndpointInput" placeholder="https://your-project.vercel.app/api/diagnostics-status">
+      </div>
+      <div class="api-field">
+        <label class="field-label">AI photo-check endpoint</label>
+        <input type="text" id="aiApiEndpointInput" placeholder="https://your-project.vercel.app/api/analyze-photos">
       </div>
     </div>
 
@@ -1177,6 +1232,7 @@ const DEFAULT_CONFIG = {
   // Additional deduction (%) applied per M360 test that comes back "Failed".
   // Values are placeholders — tune them in "Ціни та сценарії".
   apiEndpoint: "/api/diagnostics-status",
+  aiApiEndpoint: "/api/analyze-photos",
   testDefects: {
     TouchScreen: {label:"Сенсорний екран", pct:40},
     Multitouch: {label:"Мультитач", pct:15},
@@ -1235,6 +1291,7 @@ if (!CONFIG) CONFIG = deepClone(DEFAULT_CONFIG);
 // won't have these fields yet — fall back to defaults for anything missing.
 if (!CONFIG.testDefects) CONFIG.testDefects = deepClone(DEFAULT_CONFIG.testDefects);
 if (!CONFIG.apiEndpoint) CONFIG.apiEndpoint = DEFAULT_CONFIG.apiEndpoint;
+if (!CONFIG.aiApiEndpoint) CONFIG.aiApiEndpoint = DEFAULT_CONFIG.aiApiEndpoint;
 
 let dirty = false;
 
@@ -1253,15 +1310,40 @@ const state = {
 
 // ---- wizard / testing-step state (not part of CONFIG, not persisted) ----
 const wizard = {
-  step: 1,               // 1 = prelim calc, 2 = testing, 3 = result
+  step: 1,               // 1 = prelim, 2 = testing, 3 = photos, 4 = result
   imei: '',
-  prelimAmount: 0,        // final amount carried over from step 1
-  prelimDeviceLabel: '',
   testResults: null,      // { tests: [{testId, result}], ... } from M360, once received
   overrides: {},          // testId -> false means "manually dismissed / not confirmed"
   pollTimer: null,
   pollAttempts: 0,
+  photos: {},             // zoneKey -> { mediaType, data (base64), previewUrl }
+  aiAnalysis: null,       // { screen:{tierIndex,confidence}, display:{...}, body:{...} } from AI, once received
+  visualOverrides: {},    // 'screen'|'display'|'body' -> tierIndex chosen by manager (null/undefined = use step-1 answer)
 };
+
+const PHOTO_ZONES = [
+  {key:'front', label:'Екран (фронтальна панель)'},
+  {key:'back', label:'Задня панель'},
+  {key:'top', label:'Верхній торець'},
+  {key:'bottom', label:'Нижній торець'},
+  {key:'left', label:'Лівий торець'},
+  {key:'right', label:'Правий торець'},
+];
+const VISUAL_FACTOR_KEYS = ['screen','display','body'];
+
+// Compute the step-1 base price + per-factor % breakdown, honoring any
+// AI-photo overrides for screen/display/body set in step 3.
+function computeStep1Breakdown(){
+  const base = CONFIG.prices[state.model][state.storage];
+  const factors = {};
+  FACTOR_ORDER.forEach(k => {
+    const overrideIdx = wizard.visualOverrides[k];
+    const tiers = CONFIG.factors[k].tiers;
+    const tier = (overrideIdx != null && tiers[overrideIdx]) ? tiers[overrideIdx] : (tiers[state[k]] || tiers[0]);
+    factors[k] = Number(tier.pct) || 0;
+  });
+  return { base, factors };
+}
 
 const fmt = n => Math.round(n).toLocaleString('uk-UA').replace(/,/g,' ') + ' грн';
 const mult = pct => 1 - (Number(pct)||0)/100;
@@ -1466,37 +1548,32 @@ function renderFactorsGrid(){
 }
 
 // ============================================================
-// WIZARD NAVIGATION (step 1 prelim -> step 2 testing -> step 3 result)
+// WIZARD NAVIGATION (1 prelim -> 2 testing -> 3 photos -> 4 result)
 // ============================================================
 function goToStep(n){
   wizard.step = n;
   document.getElementById('step1Prelim').classList.toggle('active', n===1);
   document.getElementById('step2Testing').classList.toggle('active', n===2);
-  document.getElementById('step3Result').classList.toggle('active', n===3);
-  [1,2,3].forEach(i => {
-    document.getElementById('seg'+i).classList.toggle('done', n>i || (n===i));
+  document.getElementById('step3Photos').classList.toggle('active', n===3);
+  document.getElementById('step4Result').classList.toggle('active', n===4);
+  [1,2,3,4].forEach(i => {
+    document.getElementById('seg'+i).classList.toggle('done', n>=i);
     document.getElementById('segLabel'+i).classList.toggle('on', n===i);
   });
   if (n===2){
-    document.getElementById('prelimCarryAmount').textContent = fmt(wizard.prelimAmount);
+    const {base, factors} = computeStep1Breakdown();
+    document.getElementById('prelimCarryAmount').textContent = fmt(base * (1 - Math.min(100, Object.values(factors).reduce((a,b)=>a+b,0))/100));
     renderQrCalc();
   }
   if (n===3){
+    renderPhotoGrid();
+  }
+  if (n===4){
     renderResultStep();
   }
 }
 
 document.getElementById('toTestingBtn').addEventListener('click', () => {
-  // Capture the step-1 outcome to carry forward.
-  const base = CONFIG.prices[state.model][state.storage];
-  let rawTotalPct = 0;
-  FACTOR_ORDER.forEach(k => {
-    const tier = CONFIG.factors[k].tiers[state[k]] || CONFIG.factors[k].tiers[0];
-    rawTotalPct += Number(tier.pct) || 0;
-  });
-  const clampedPct = Math.min(100, rawTotalPct);
-  wizard.prelimAmount = base * (1 - clampedPct/100);
-  wizard.prelimDeviceLabel = `${state.model}, ${state.storage}`;
   wizard.testResults = null;
   wizard.overrides = {};
   document.getElementById('imeiInputCalc').value = wizard.imei || '';
@@ -1504,13 +1581,19 @@ document.getElementById('toTestingBtn').addEventListener('click', () => {
   goToStep(2);
 });
 document.getElementById('backToStep1Btn').addEventListener('click', () => { stopPollingCalc(); goToStep(1); });
-document.getElementById('backToStep2Btn').addEventListener('click', () => goToStep(2));
 document.getElementById('skipTestingBtn').addEventListener('click', () => { stopPollingCalc(); goToStep(3); });
 document.getElementById('skipTestingManualBtn').addEventListener('click', () => {
   stopPollingCalc();
   wizard.testResults = { tests: [] };
   goToStep(3);
 });
+document.getElementById('backToStep2BtnPhotos').addEventListener('click', () => goToStep(2));
+document.getElementById('toResultFromPhotosBtn').addEventListener('click', () => goToStep(4));
+document.getElementById('skipPhotosBtn').addEventListener('click', () => {
+  wizard.visualOverrides = {};
+  goToStep(4);
+});
+document.getElementById('backToStep3PhotosBtn').addEventListener('click', () => goToStep(3));
 
 // ============================================================
 // STEP 2 — testing (IMEI, QR, poll M360 via the proxy endpoint)
@@ -1607,7 +1690,157 @@ async function pollCalc(imei){
 }
 
 // ============================================================
-// STEP 3 — final result (prelim price + configurable per-defect %)
+// STEP 3 — photo verification (AI vision vs. step-1 visual answers)
+// ============================================================
+function renderPhotoGrid(){
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = '';
+  PHOTO_ZONES.forEach(z => {
+    const slot = document.createElement('label');
+    const existing = wizard.photos[z.key];
+    slot.className = 'photo-slot' + (existing ? ' filled' : '');
+    slot.innerHTML = `
+      <input type="file" accept="image/*" capture="environment">
+      ${existing ? `<img class="thumb" src="${existing.previewUrl}">` : `<div class="placeholder">📷</div>`}
+      <div class="zone-label">${z.label}</div>
+    `;
+    slot.querySelector('input').addEventListener('change', (e) => handlePhotoSelected(z.key, e.target.files[0]));
+    grid.appendChild(slot);
+  });
+  updateAnalyzeBtnState();
+}
+
+function compressImageFile(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const maxDim = 1024;
+        let {width, height} = img;
+        if (width > maxDim || height > maxDim){
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+        resolve({ mediaType: 'image/jpeg', data: dataUrl.split(',')[1], previewUrl: dataUrl });
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handlePhotoSelected(zoneKey, file){
+  if (!file) return;
+  try{
+    const compressed = await compressImageFile(file);
+    wizard.photos[zoneKey] = compressed;
+    renderPhotoGrid();
+  }catch(e){
+    alert('Не вдалося обробити фото: ' + e.message);
+  }
+}
+
+function updateAnalyzeBtnState(){
+  const count = Object.keys(wizard.photos).length;
+  const btn = document.getElementById('analyzePhotosBtn');
+  btn.disabled = count === 0;
+  btn.textContent = count === 0
+    ? 'Перевірити фото за допомогою AI'
+    : `Перевірити фото за допомогою AI (${count}/6)`;
+}
+
+document.getElementById('analyzePhotosBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('analyzePhotosBtn');
+  const note = document.getElementById('photoStatusNote');
+  const photos = PHOTO_ZONES
+    .filter(z => wizard.photos[z.key])
+    .map(z => ({ zone: z.label, mediaType: wizard.photos[z.key].mediaType, data: wizard.photos[z.key].data }));
+  if (photos.length === 0) return;
+
+  btn.disabled = true;
+  const prevText = btn.textContent;
+  btn.textContent = 'Аналізуємо фото…';
+  note.textContent = '';
+
+  const factorsPayload = {};
+  VISUAL_FACTOR_KEYS.forEach(k => {
+    factorsPayload[k] = { label: CONFIG.factors[k].label, tiers: CONFIG.factors[k].tiers.map(t => ({label:t.label, hint:t.hint||''})) };
+  });
+
+  try{
+    const res = await fetch(CONFIG.aiApiEndpoint, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ photos, factors: factorsPayload })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.result){
+      note.textContent = 'Помилка перевірки: ' + (data.error || res.status);
+      return;
+    }
+    wizard.aiAnalysis = data.result;
+    renderVisualCompareRows();
+    note.textContent = 'Перевірку завершено — перегляньте пропозиції нижче.';
+  }catch(e){
+    note.textContent = 'Не вдалося звʼязатися з сервером перевірки: ' + e.message;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = prevText;
+  }
+});
+
+function renderVisualCompareRows(){
+  const wrap = document.getElementById('visualOverrideRows');
+  if (!wizard.aiAnalysis){
+    wrap.innerHTML = '<p class="empty-note">Завантажте фото і натисніть «Перевірити», щоб побачити пропозиції AI тут.</p>';
+    return;
+  }
+  wrap.innerHTML = '';
+  VISUAL_FACTOR_KEYS.forEach(key => {
+    const f = CONFIG.factors[key];
+    const originalIdx = state[key];
+    const ai = wizard.aiAnalysis[key];
+    const aiIdx = ai ? Math.max(0, Math.min(f.tiers.length - 1, ai.tierIndex)) : null;
+    const confidence = ai ? Math.round((ai.confidence||0) * 100) : null;
+    const mismatch = ai && aiIdx !== originalIdx;
+
+    if (wizard.visualOverrides[key] == null){
+      wizard.visualOverrides[key] = (mismatch && confidence >= 70) ? aiIdx : originalIdx;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'visual-compare-card';
+    card.innerHTML = `
+      <h4>${f.label}</h4>
+      <div class="vc-row"><span>Вказано на кроці 1:</span><b>${f.tiers[originalIdx].label}</b></div>
+      <div class="vc-row"><span>AI бачить на фото:</span><b class="${ai ? (mismatch ? 'vc-mismatch' : 'vc-match') : ''}">${ai ? `${f.tiers[aiIdx].label} (${confidence}%)` : 'немає даних'}</b></div>
+      <select data-key="${key}"></select>
+    `;
+    const select = card.querySelector('select');
+    f.tiers.forEach((t, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = t.label;
+      if (idx === wizard.visualOverrides[key]) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', () => {
+      wizard.visualOverrides[key] = parseInt(select.value, 10);
+    });
+    wrap.appendChild(card);
+  });
+}
+
+// ============================================================
+// STEP 4 — final result (prelim price + M360 deductions + AI photo overrides)
 // ============================================================
 function renderResultStep(){
   const failedTests = (wizard.testResults && wizard.testResults.tests || []).filter(t => t.result === 'Failed');
@@ -1657,18 +1890,23 @@ function renderResultStep(){
   }
 
   extraPct = Math.min(100, extraPct);
-  const finalAmount = wizard.prelimAmount * (1 - extraPct/100);
+  const {base, factors} = computeStep1Breakdown();
+  const prelimPct = Math.min(100, Object.values(factors).reduce((a,b)=>a+b, 0));
+  const prelimAmount = base * (1 - prelimPct/100);
+  const finalAmount = prelimAmount * (1 - extraPct/100);
 
-  document.getElementById('finalDeviceLabel').textContent = wizard.prelimDeviceLabel;
+  document.getElementById('finalDeviceLabel').textContent = `${state.model}, ${state.storage}`;
   document.getElementById('finalAmountLabel').textContent = fmt(finalAmount);
   document.getElementById('finalBaseLabel').innerHTML = extraPct > 0
-    ? `Попередня оцінка: <s>${fmt(wizard.prelimAmount)}</s>`
-    : `Тестування не змінило попередню оцінку`;
+    ? `Оцінка після кроків 1–3: <s>${fmt(prelimAmount)}</s>`
+    : `Тестування та фото не змінили попередню оцінку`;
+
+  const anyVisualOverride = VISUAL_FACTOR_KEYS.some(k => wizard.visualOverrides[k] != null && wizard.visualOverrides[k] !== state[k]);
 
   const bd = document.getElementById('finalBreakdown');
   bd.innerHTML = `
-    <div class="breakdown-row active"><span>Попередня оцінка</span><span>${fmt(wizard.prelimAmount)}</span></div>
-    <div class="breakdown-row ${extraPct>0?'active':''}"><span>Додаткова знижка за тестуванням</span><span class="pct ${extraPct>0?'neg':'zero'}">−${extraPct % 1 === 0 ? extraPct : extraPct.toFixed(1)}%</span></div>
+    <div class="breakdown-row active"><span>Оцінка з урахуванням кроків 1${anyVisualOverride ? ' і 3' : ''}</span><span>${fmt(prelimAmount)}</span></div>
+    <div class="breakdown-row ${extraPct>0?'active':''}"><span>Додаткова знижка за тестуванням (крок 2)</span><span class="pct ${extraPct>0?'neg':'zero'}">−${extraPct % 1 === 0 ? extraPct : extraPct.toFixed(1)}%</span></div>
     <div class="total-row"><span>Підсумкова ціна викупу</span><span>${fmt(finalAmount)}</span></div>
   `;
 }
@@ -1766,6 +2004,10 @@ document.getElementById('apiEndpointInput').addEventListener('input', (e) => {
   CONFIG.apiEndpoint = e.target.value.trim();
   markDirty();
 });
+document.getElementById('aiApiEndpointInput').addEventListener('input', (e) => {
+  CONFIG.aiApiEndpoint = e.target.value.trim();
+  markDirty();
+});
 
 let defectSearchTerm = '';
 document.getElementById('defectSearch').addEventListener('input', (e) => {
@@ -1775,6 +2017,7 @@ document.getElementById('defectSearch').addEventListener('input', (e) => {
 
 function renderDefectTable(){
   document.getElementById('apiEndpointInput').value = CONFIG.apiEndpoint || '';
+  document.getElementById('aiApiEndpointInput').value = CONFIG.aiApiEndpoint || '';
   const tbody = document.getElementById('defectTableBody');
   tbody.innerHTML = '';
   const term = defectSearchTerm.trim().toLowerCase();
@@ -1867,6 +2110,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
       if (!parsed.prices || !parsed.factors) throw new Error('Невірна структура файлу (очікуються поля "prices" і "factors").');
       if (!parsed.testDefects) parsed.testDefects = deepClone(DEFAULT_CONFIG.testDefects);
       if (!parsed.apiEndpoint) parsed.apiEndpoint = DEFAULT_CONFIG.apiEndpoint;
+      if (!parsed.aiApiEndpoint) parsed.aiApiEndpoint = DEFAULT_CONFIG.aiApiEndpoint;
       CONFIG = parsed;
       priceSearchTerm = '';
       document.getElementById('priceSearch').value = '';
