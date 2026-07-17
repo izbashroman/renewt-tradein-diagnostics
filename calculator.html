@@ -470,6 +470,12 @@
             <div id="defectRows"></div>
             <div class="empty-note" id="noDefectsNote" hidden>Тестування не виявило додаткових дефектів понад ті, що вказані в попередній оцінці.</div>
           </div>
+          <div class="card" style="margin-top:16px;">
+            <h2>Дефекти, знайдені під час AI оцінки</h2>
+            <p class="section-desc">Зніміть галочку біля дефекту, якщо він не підтвердився — знижка за нього буде прибрана з підсумкової ціни.</p>
+            <div id="aiDefectRows"></div>
+            <div class="empty-note" id="noAiDefectsNote" hidden>AI-оцінка фото не виявила додаткових дефектів понад ті, що вказані в попередній оцінці.</div>
+          </div>
           <div class="card" style="margin-top:16px;" id="passedCard" hidden>
             <h2>Пройдені тести</h2>
             <div class="passed-chip-wrap" id="passedChips"></div>
@@ -2034,24 +2040,60 @@ function renderResultStep(){
     passedCard.hidden = true;
   }
 
-  extraPct = Math.min(100, extraPct);
+  // ---- AI-found defects (screen/display/body), same format as the M360 list above ----
+  const aiRowsWrap = document.getElementById('aiDefectRows');
+  aiRowsWrap.innerHTML = '';
+  let aiDefectCount = 0;
+  VISUAL_FACTOR_KEYS.forEach(key => {
+    const f = CONFIG.factors[key];
+    const originalIdx = state[key];
+    const originalPct = Number(f.tiers[originalIdx].pct) || 0;
+    const ai = wizard.aiAnalysis && wizard.aiAnalysis[key];
+    if (!ai) return;
+    const aiIdx = Math.max(0, Math.min(f.tiers.length - 1, ai.tierIndex));
+    const aiPct = Number(f.tiers[aiIdx].pct) || 0;
+    if (aiPct <= originalPct) return; // AI didn't find extra damage for this factor
+
+    aiDefectCount++;
+    const confirmed = wizard.visualOverrides[key] === aiIdx;
+    const extraPct = aiPct - originalPct;
+
+    const row = document.createElement('label');
+    row.className = 'defect-row';
+    row.innerHTML = `
+      <input type="checkbox" ${confirmed ? 'checked' : ''}>
+      <span class="defect-info">
+        <span class="name">${f.label}</span>
+        <span class="sub">${confirmed ? `AI побачив: ${f.tiers[aiIdx].label}` : 'Позначено як «не підтверджено» — знижку прибрано'}</span>
+      </span>
+      <span class="defect-pct ${confirmed ? '' : 'off'}">−${extraPct % 1 === 0 ? extraPct : extraPct.toFixed(1)}%</span>
+    `;
+    row.querySelector('input').addEventListener('change', (e) => {
+      wizard.visualOverrides[key] = e.target.checked ? aiIdx : originalIdx;
+      renderResultStep();
+    });
+    aiRowsWrap.appendChild(row);
+  });
+  document.getElementById('noAiDefectsNote').hidden = aiDefectCount > 0;
+
   const {base, factors} = computeStep1Breakdown();
-  const prelimPct = Math.min(100, Object.values(factors).reduce((a,b)=>a+b, 0));
-  const prelimAmount = base * (1 - prelimPct/100);
-  const finalAmount = prelimAmount * (1 - extraPct/100);
+  const rawPrelimPct = Object.values(factors).reduce((a,b)=>a+b, 0);
+  const rawTotalPct = rawPrelimPct + extraPct;
+  const totalPct = Math.min(100, rawTotalPct);
+  const finalAmount = base * (1 - totalPct/100);
 
   document.getElementById('finalDeviceLabel').textContent = `${state.model}, ${state.storage}`;
   document.getElementById('finalAmountLabel').textContent = fmt(finalAmount);
-  document.getElementById('finalBaseLabel').innerHTML = extraPct > 0
-    ? `Оцінка після кроків 1–3: <s>${fmt(prelimAmount)}</s>`
-    : `Тестування та фото не змінили попередню оцінку`;
-
-  const anyVisualOverride = VISUAL_FACTOR_KEYS.some(k => wizard.visualOverrides[k] != null && wizard.visualOverrides[k] !== state[k]);
+  document.getElementById('finalBaseLabel').innerHTML = totalPct > 0
+    ? `Максимальна ціна (ідеальний стан): <s>${fmt(base)}</s>`
+    : `Це і є максимальна ціна викупу`;
 
   const bd = document.getElementById('finalBreakdown');
   bd.innerHTML = `
-    <div class="breakdown-row active"><span>Оцінка з урахуванням кроків 1${anyVisualOverride ? ' і 3' : ''}</span><span>${fmt(prelimAmount)}</span></div>
-    <div class="breakdown-row ${extraPct>0?'active':''}"><span>Додаткова знижка за тестуванням (крок 2)</span><span class="pct ${extraPct>0?'neg':'zero'}">−${extraPct % 1 === 0 ? extraPct : extraPct.toFixed(1)}%</span></div>
+    <div class="breakdown-row active"><span>Базова ціна (модель × памʼять)</span><span>${fmt(base)}</span></div>
+    <div class="breakdown-row ${rawPrelimPct>0?'active':''}"><span>Знижка за кроком 1 (і AI-корекцією екрана/корпуса)</span><span class="pct ${rawPrelimPct>0?'neg':'zero'}">−${rawPrelimPct % 1 === 0 ? rawPrelimPct : rawPrelimPct.toFixed(1)}%</span></div>
+    <div class="breakdown-row ${extraPct>0?'active':''}"><span>Знижка за результатами тестування M360</span><span class="pct ${extraPct>0?'neg':'zero'}">−${extraPct % 1 === 0 ? extraPct : extraPct.toFixed(1)}%</span></div>
+    <div class="breakdown-row total-row"><span>Загальна знижка${rawTotalPct>100 ? ' (обмежено 100%)' : ''}</span><span>−${totalPct % 1 === 0 ? totalPct : totalPct.toFixed(1)}%</span></div>
     <div class="total-row"><span>Підсумкова ціна викупу</span><span>${fmt(finalAmount)}</span></div>
   `;
 }
