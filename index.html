@@ -1,1 +1,541 @@
-·ДиагностикаустройстваДиагностикаустройствапередоценкойСканированиеРезультатВведитеустройстваНаберитеномервручнуюилинаберитенателефонечтобыувидетьегонаэкранецифрбезпробеловПродолжитьСкачайтеприложениеипройдитетестОтсканируйтекодкамеройтелефонаустановитеприложениедиагностикииследуйтеинструкциямнаэкранеустройства—Ожидаемрезультатыдиагностики…ТестыпройденоОтменитьивернутьсяСтатусдиагностикизапрашиваетсячерезпоустройстваСенсорныйэкранБитыепикселиДинамикМикрофонОсновнаякамераФронтальнаякамераБатареяВибромоторКнопкиЗарядкацифрбезпробеловВведеноизцифрПохожевведёнсошибкой—проверьтеномеркорректен·ожидание✓пройден–нд–пропущен✕провален—Ожидаемрезультатыдиагностики…Диагностиканезавершена—попробуйтепозже✓ДиагностикапройденаВсеобязательныетестыпройденыуспешноМожнопереходитькфинальнойоценкеустройства→переходкследующемушагукалькулятораПерейтикоценкеПроверитьдругоеустройство✕ОбнаруженынеисправностиЧастьтестовнепройденаИтоговаяоценкабудетскорректированасучётомремонталибопотребуетсярешениеспециалиста✕→переходкскорректированнойоценкеручнойпроверкеПродолжитьсоскидкойнаремонтНачатьзановоцифрбезпробелов
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trade-In · Диагностика устройства</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg: #0A0F1C;
+    --surface: #121A2B;
+    --surface-2: #182238;
+    --line: #23304A;
+    --text: #E7ECF5;
+    --muted: #7C8AA6;
+    --teal: #2DD4BF;
+    --teal-dim: #133B37;
+    --amber: #F0A93E;
+    --amber-dim: #3A2E14;
+    --red: #F0554D;
+    --red-dim: #3A1717;
+    --radius: 14px;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: radial-gradient(ellipse 900px 500px at 50% -10%, #16213A 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display:flex;
+    justify-content:center;
+    padding: 32px 16px 80px;
+  }
+  .display{ font-family: 'Space Grotesk', sans-serif; }
+  .mono{ font-family: 'IBM Plex Mono', monospace; }
+
+  .app{ width:100%; max-width: 480px; }
+
+  .brand{
+    display:flex; align-items:center; gap:10px; margin-bottom: 28px;
+  }
+  .brand-mark{
+    width:34px; height:34px; border-radius:9px;
+    background: linear-gradient(135deg, var(--teal), #1a8f82);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk'; font-weight:700; color:#04211D; font-size:15px;
+  }
+  .brand-name{ font-family:'Space Grotesk'; font-weight:600; font-size:15px; letter-spacing:0.02em; }
+  .brand-sub{ color:var(--muted); font-size:12px; }
+
+  /* Stepper */
+  .stepper{ display:flex; gap:6px; margin-bottom: 26px; }
+  .step-track{ flex:1; height:3px; background: var(--line); border-radius:2px; overflow:hidden; position:relative; }
+  .step-track .fill{ position:absolute; inset:0; background: var(--teal); width:0%; transition: width .5s ease; }
+  .step-labels{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:8px; }
+  .step-labels span.active{ color: var(--teal); font-weight:600; }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 26px 22px;
+    margin-bottom: 16px;
+  }
+
+  h1{ font-family:'Space Grotesk'; font-size: 21px; font-weight:600; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .lede{ color: var(--muted); font-size: 13.5px; line-height:1.5; margin: 0 0 22px; }
+
+  label.field-label{ display:block; font-size:12px; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.04em; }
+
+  .imei-input-row{ display:flex; gap:10px; }
+  input.imei-input{
+    flex:1; min-width:0;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family:'IBM Plex Mono';
+    font-size: 17px;
+    letter-spacing: 0.04em;
+    padding: 14px 14px;
+    border-radius: 10px;
+    outline:none;
+    transition: border-color .15s;
+  }
+  input.imei-input:focus{ border-color: var(--teal); }
+  input.imei-input.invalid{ border-color: var(--red); }
+
+  .hint{ font-size:12px; margin-top:9px; color:var(--muted); min-height:16px; }
+  .hint.err{ color: var(--red); }
+  .hint.ok{ color: var(--teal); }
+
+  button.primary{
+    width:100%;
+    background: var(--teal);
+    color: #04211D;
+    border:none;
+    font-family:'Space Grotesk'; font-weight:600; font-size:14.5px;
+    padding: 14px;
+    border-radius: 10px;
+    cursor:pointer;
+    margin-top: 20px;
+    transition: opacity .15s, transform .1s;
+  }
+  button.primary:disabled{ opacity:0.35; cursor:not-allowed; }
+  button.primary:not(:disabled):hover{ opacity:0.9; }
+  button.primary:not(:disabled):active{ transform: scale(0.99); }
+
+  button.ghost{
+    width:100%;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    font-family:'Inter'; font-weight:500; font-size:13.5px;
+    padding: 12px;
+    border-radius: 10px;
+    cursor:pointer;
+    margin-top: 10px;
+  }
+  button.ghost:hover{ color: var(--text); border-color: #3a4a6b; }
+
+  /* QR step */
+  .qr-wrap{
+    display:flex; flex-direction:column; align-items:center;
+    padding: 20px 0 6px;
+  }
+  #qrcode{
+    background:#fff; padding: 14px; border-radius: 12px;
+    box-shadow: 0 0 0 1px var(--line), 0 20px 40px -20px rgba(45,212,191,0.25);
+  }
+  .imei-chip{
+    margin-top:18px;
+    font-family:'IBM Plex Mono'; font-size:13px; color: var(--muted);
+    background: var(--surface-2); border:1px solid var(--line);
+    padding: 7px 14px; border-radius: 20px;
+  }
+  .imei-chip b{ color: var(--text); font-weight:600; }
+
+  .waiting-row{
+    display:flex; align-items:center; gap:10px;
+    margin-top:22px; padding: 12px 14px;
+    background: var(--surface-2); border-radius: 10px; border:1px solid var(--line);
+  }
+  .pulse-dot{
+    width:9px; height:9px; border-radius:50%; background: var(--amber);
+    box-shadow: 0 0 0 0 rgba(240,169,62,0.55);
+    animation: pulse 1.6s infinite;
+    flex-shrink:0;
+  }
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 0 rgba(240,169,62,0.55); }
+    70%{ box-shadow: 0 0 0 8px rgba(240,169,62,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(240,169,62,0); }
+  }
+  .waiting-row span{ font-size:13px; color: var(--muted); }
+
+  /* Test checklist */
+  .test-list{ display:flex; flex-direction:column; gap:1px; border-radius:10px; overflow:hidden; border:1px solid var(--line); }
+  .test-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 14px; background: var(--surface-2);
+    font-size: 13.5px;
+  }
+  .test-row .name{ display:flex; align-items:center; gap:10px; }
+  .status-icon{
+    width:20px; height:20px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 11px; font-weight:700; flex-shrink:0;
+  }
+  .status-icon.pending{ background: #212C42; color: var(--muted); }
+  .status-icon.pass{ background: var(--teal-dim); color: var(--teal); }
+  .status-icon.fail{ background: var(--red-dim); color: var(--red); }
+  .status-icon.na{ background: #212C42; color: var(--muted); }
+  .test-status-text{ font-size:12px; color:var(--muted); }
+  .test-status-text.pass{ color: var(--teal); }
+  .test-status-text.fail{ color: var(--red); }
+
+  .progress-summary{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom: 14px;
+  }
+  .progress-summary .count{ font-family:'Space Grotesk'; font-size: 15px; font-weight:600; }
+  .progress-summary .of{ color:var(--muted); font-weight:400; }
+
+  /* Result screen */
+  .result-badge{
+    width:56px; height:56px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:26px; margin-bottom:16px;
+  }
+  .result-badge.pass{ background: var(--teal-dim); color: var(--teal); }
+  .result-badge.fail{ background: var(--red-dim); color: var(--red); }
+
+  .failed-list{ margin-top: 14px; }
+  .failed-item{
+    font-size:13px; color: var(--red);
+    padding: 8px 0; border-bottom: 1px solid var(--line);
+  }
+  .failed-item:last-child{ border-bottom:none; }
+
+  .footer-note{
+    text-align:center; color: var(--muted); font-size:11.5px; margin-top: 18px; line-height:1.6;
+  }
+
+  .demo-toggle{
+    position:fixed; top:14px; right:14px;
+    font-size:11px; color:var(--muted);
+    background: var(--surface); border:1px solid var(--line);
+    padding:6px 10px; border-radius: 8px;
+    display:flex; align-items:center; gap:6px;
+    z-index: 10;
+  }
+  .demo-toggle input{ accent-color: var(--teal); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="brand">
+    <div class="brand-mark">R</div>
+    <div>
+      <div class="brand-name">Re-Newt Trade-In</div>
+      <div class="brand-sub">Диагностика устройства перед оценкой</div>
+    </div>
+  </div>
+
+  <div class="stepper">
+    <div class="step-track"><div class="fill" id="fill1"></div></div>
+    <div class="step-track"><div class="fill" id="fill2"></div></div>
+    <div class="step-track"><div class="fill" id="fill3"></div></div>
+  </div>
+  <div class="step-labels">
+    <span id="label1">IMEI</span>
+    <span id="label2">Сканирование</span>
+    <span id="label3">Результат</span>
+  </div>
+
+  <!-- STEP 1: IMEI -->
+  <div class="card" id="step1">
+    <h1>Введите IMEI устройства</h1>
+    <p class="lede">Наберите номер вручную или наберите <span class="mono">*#06#</span> на телефоне, чтобы увидеть его на экране.</p>
+
+    <label class="field-label">IMEI</label>
+    <div class="imei-input-row">
+      <input type="text" inputmode="numeric" class="imei-input" id="imeiInput" placeholder="359123456789012" maxlength="17">
+    </div>
+    <div class="hint" id="imeiHint">15 цифр, без пробелов</div>
+
+    <button class="primary" id="toStep2Btn" disabled>Продолжить</button>
+  </div>
+
+  <!-- STEP 2: QR + polling -->
+  <div class="card" id="step2" style="display:none;">
+    <h1>Скачайте приложение и пройдите тест</h1>
+    <p class="lede">Отсканируйте QR-код камерой телефона, установите приложение диагностики и следуйте инструкциям на экране устройства.</p>
+
+    <div class="qr-wrap">
+      <div id="qrcode"></div>
+      <div class="imei-chip">IMEI: <b id="imeiChip">—</b></div>
+    </div>
+
+    <div class="waiting-row" id="waitingRow">
+      <div class="pulse-dot"></div>
+      <span id="waitingText">Ожидаем результаты диагностики…</span>
+    </div>
+
+    <div style="margin-top:22px;" id="testListWrap" hidden>
+      <div class="progress-summary">
+        <span>Тесты</span>
+        <span class="count"><span id="passedCount">0</span><span class="of"> / <span id="totalCount">0</span> пройдено</span></span>
+      </div>
+      <div class="test-list" id="testList"></div>
+    </div>
+
+    <button class="ghost" id="cancelPollBtn">Отменить и вернуться</button>
+  </div>
+
+  <!-- STEP 3: Result -->
+  <div class="card" id="step3" style="display:none;">
+    <div id="resultContent"></div>
+  </div>
+
+  <div class="footer-note">
+    Статус диагностики запрашивается через M360 Customer API v2 (getHistory) по IMEI устройства
+  </div>
+
+</div>
+
+<script>
+/* ---------- Test taxonomy (subset relevant to trade-in grading) ---------- */
+const REQUIRED_TESTS = [
+  { id: 'TouchScreen', label: 'Сенсорный экран' },
+  { id: 'Color',       label: 'Битые пиксели' },
+  { id: 'Speaker',     label: 'Динамик' },
+  { id: 'Microphone',  label: 'Микрофон' },
+  { id: 'RearCamera',  label: 'Основная камера' },
+  { id: 'FrontCamera', label: 'Фронтальная камера' },
+  { id: 'Battery',     label: 'Батарея' },
+  { id: 'Vibration',   label: 'Вибромотор' },
+  { id: 'Wifi',        label: 'Wi-Fi' },
+  { id: 'Bluetooth',   label: 'Bluetooth' },
+  { id: 'HardwareButton', label: 'Кнопки' },
+  { id: 'Charge',      label: 'Зарядка' },
+];
+
+/* ---------- State ---------- */
+let currentImei = '';
+let pollTimer = null;
+let pollAttempts = 0;
+const MAX_POLL_ATTEMPTS = 40; // ~2 min at 3s interval
+
+/* ---------- Step navigation ---------- */
+function setStep(n){
+  document.getElementById('step1').style.display = n===1 ? '' : 'none';
+  document.getElementById('step2').style.display = n===2 ? '' : 'none';
+  document.getElementById('step3').style.display = n===3 ? '' : 'none';
+
+  document.getElementById('fill1').style.width = n>=1 ? '100%' : '0%';
+  document.getElementById('fill2').style.width = n>=2 ? '100%' : '0%';
+  document.getElementById('fill3').style.width = n>=3 ? '100%' : '0%';
+
+  ['label1','label2','label3'].forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('active', n===i+1);
+  });
+}
+
+/* ---------- IMEI validation (Luhn) ---------- */
+function luhnValid(imei){
+  if(!/^\d{15}$/.test(imei)) return false;
+  let sum = 0;
+  for(let i=0;i<15;i++){
+    let d = parseInt(imei[i],10);
+    if(i % 2 === 1){
+      d *= 2;
+      if(d>9) d -= 9;
+    }
+    sum += d;
+  }
+  return sum % 10 === 0;
+}
+
+const imeiInput = document.getElementById('imeiInput');
+const imeiHint = document.getElementById('imeiHint');
+const toStep2Btn = document.getElementById('toStep2Btn');
+
+imeiInput.addEventListener('input', ()=>{
+  imeiInput.value = imeiInput.value.replace(/\D/g,'').slice(0,15);
+  const val = imeiInput.value;
+  if(val.length === 0){
+    imeiHint.textContent = '15 цифр, без пробелов';
+    imeiHint.className = 'hint';
+    imeiInput.classList.remove('invalid');
+    toStep2Btn.disabled = true;
+  } else if(val.length < 15){
+    imeiHint.textContent = `Введено ${val.length} из 15 цифр`;
+    imeiHint.className = 'hint';
+    imeiInput.classList.remove('invalid');
+    toStep2Btn.disabled = true;
+  } else if(!luhnValid(val)){
+    imeiHint.textContent = 'Похоже, IMEI введён с ошибкой — проверьте номер';
+    imeiHint.className = 'hint err';
+    imeiInput.classList.add('invalid');
+    toStep2Btn.disabled = true;
+  } else {
+    imeiHint.textContent = 'IMEI корректен';
+    imeiHint.className = 'hint ok';
+    imeiInput.classList.remove('invalid');
+    toStep2Btn.disabled = false;
+  }
+});
+
+toStep2Btn.addEventListener('click', ()=>{
+  currentImei = imeiInput.value;
+  document.getElementById('imeiChip').textContent = currentImei;
+  renderQR(currentImei);
+  renderTestListSkeleton();
+  setStep(2);
+  startPolling(currentImei);
+});
+
+document.getElementById('cancelPollBtn').addEventListener('click', ()=>{
+  stopPolling();
+  setStep(1);
+});
+
+/* ---------- QR ---------- */
+function renderQR(imei){
+  document.getElementById('qrcode').innerHTML = '';
+  // In production this deep-link opens the store listing / app with the
+  // diagnostics flow; the app reads IMEI directly from the device itself,
+  // so no parameters are required here.
+  new QRCode(document.getElementById('qrcode'), {
+    text: 'https://m360soft.com/app/download?ref=renewt-tradein',
+    width: 168,
+    height: 168,
+    colorDark: '#0A0F1C',
+    colorLight: '#ffffff',
+  });
+}
+
+/* ---------- Test list rendering ---------- */
+function renderTestListSkeleton(){
+  const list = document.getElementById('testList');
+  list.innerHTML = '';
+  REQUIRED_TESTS.forEach(t=>{
+    const row = document.createElement('div');
+    row.className = 'test-row';
+    row.id = `test-${t.id}`;
+    row.innerHTML = `
+      <div class="name">
+        <div class="status-icon pending" id="icon-${t.id}">·</div>
+        <span>${t.label}</span>
+      </div>
+      <span class="test-status-text" id="status-${t.id}">ожидание</span>
+    `;
+    list.appendChild(row);
+  });
+  document.getElementById('totalCount').textContent = REQUIRED_TESTS.length;
+  document.getElementById('passedCount').textContent = '0';
+}
+
+function updateTestRow(testId, result){
+  const icon = document.getElementById(`icon-${testId}`);
+  const status = document.getElementById(`status-${testId}`);
+  if(!icon || !status) return;
+  icon.classList.remove('pending','pass','fail','na');
+  if(result === 'Passed'){
+    icon.classList.add('pass'); icon.textContent = '✓';
+    status.textContent = 'пройден'; status.className = 'test-status-text pass';
+  } else if(result === 'NA'){
+    icon.classList.add('na'); icon.textContent = '–';
+    status.textContent = 'н/д'; status.className = 'test-status-text';
+  } else if(result === 'Skipped'){
+    icon.classList.add('na'); icon.textContent = '–';
+    status.textContent = 'пропущен'; status.className = 'test-status-text';
+  } else {
+    icon.classList.add('fail'); icon.textContent = '✕';
+    status.textContent = 'провален'; status.className = 'test-status-text fail';
+  }
+}
+
+/* ---------- Polling against M360 getHistory ----------
+   Calls YOUR backend proxy (never M360 directly from the browser — the
+   Bearer token must stay server-side, in the function's env vars).
+------------------------------------------------------------------------ */
+
+function startPolling(imei){
+  pollAttempts = 0;
+  document.getElementById('testListWrap').hidden = false;
+  document.getElementById('waitingText').textContent = 'Ожидаем результаты диагностики…';
+  pollTimer = setInterval(()=> poll(imei), 3000);
+  poll(imei); // fire immediately too
+}
+
+function stopPolling(){
+  if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+}
+
+async function poll(imei){
+  pollAttempts++;
+  if(pollAttempts > MAX_POLL_ATTEMPTS){
+    stopPolling();
+    document.getElementById('waitingText').textContent = 'Диагностика не завершена — попробуйте позже';
+    return;
+  }
+
+  const data = await fetchDiagnostics(imei);
+
+  if(!data || !data.hasDiagnostics){
+    return; // keep waiting, session not closed / no results yet
+  }
+
+  stopPolling();
+  document.getElementById('waitingRow').style.display = 'none';
+
+  data.tests.forEach(t => updateTestRow(t.testId, t.result));
+
+  const passedOrNA = data.tests.filter(t => t.result === 'Passed' || t.result === 'NA').length;
+  document.getElementById('passedCount').textContent = passedOrNA;
+
+  const failed = data.tests.filter(t => t.result === 'Failed');
+  showResult(failed.length === 0, failed, data);
+}
+
+/* ---------- Real call to your backend proxy (/api/diagnostics-status) ---------- */
+async function fetchDiagnostics(imei){
+  try{
+    const res = await fetch('/api/diagnostics-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imei })
+    });
+    if(!res.ok){
+      console.error('diagnostics-status error', res.status);
+      return { hasDiagnostics: false };
+    }
+    return await res.json();
+  } catch(err){
+    console.error('diagnostics-status fetch failed', err);
+    return { hasDiagnostics: false };
+  }
+}
+
+/* ---------- Result screen ---------- */
+function showResult(allPassed, failed, data){
+  const wrap = document.getElementById('resultContent');
+  if(allPassed){
+    wrap.innerHTML = `
+      <div class="result-badge pass">✓</div>
+      <h1>Диагностика пройдена</h1>
+      <p class="lede">Все обязательные тесты пройдены успешно. Можно переходить к финальной оценке устройства.</p>
+      <button class="primary" onclick="alert('→ переход к следующему шагу калькулятора')">Перейти к оценке</button>
+      <button class="ghost" id="restartBtn">Проверить другое устройство</button>
+    `;
+  } else {
+    wrap.innerHTML = `
+      <div class="result-badge fail">✕</div>
+      <h1>Обнаружены неисправности</h1>
+      <p class="lede">Часть тестов не пройдена. Итоговая оценка будет скорректирована с учётом ремонта, либо потребуется решение специалиста.</p>
+      <div class="failed-list">
+        ${failed.map(t => `<div class="failed-item">✕ ${REQUIRED_TESTS.find(r=>r.id===t.testId)?.label || t.testId}</div>`).join('')}
+      </div>
+      <button class="primary" onclick="alert('→ переход к скорректированной оценке / ручной проверке')">Продолжить со скидкой на ремонт</button>
+      <button class="ghost" id="restartBtn">Начать заново</button>
+    `;
+  }
+  setStep(3);
+  document.getElementById('restartBtn').addEventListener('click', ()=>{
+    imeiInput.value = '';
+    imeiHint.textContent = '15 цифр, без пробелов';
+    imeiHint.className = 'hint';
+    toStep2Btn.disabled = true;
+    setStep(1);
+  });
+}
+</script>
+</body>
+</html>
