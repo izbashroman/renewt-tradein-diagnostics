@@ -280,6 +280,20 @@
       <div class="imei-chip">IMEI: <b id="imeiChip">—</b></div>
     </div>
 
+    <div class="card" style="margin-top:20px;background:var(--surface-2);">
+      <p class="lede" style="margin-bottom:12px;">
+        Після тесту у додатку M360:<br>
+        1. Відкрийте вкладку «Результати»<br>
+        2. Натисніть «Поділитися результатами»<br>
+        3. Оберіть «Поділитися з магазином»<br>
+        4. Відскануйте QR-код магазина нижче (або введіть ID вручну)
+      </p>
+      <div class="qr-wrap">
+        <div class="qr-img-wrap" id="qrcodeStore"></div>
+        <div class="imei-chip" style="margin-top:10px;">ID магазину: <b id="storeIdLabel"></b></div>
+      </div>
+    </div>
+
     <div class="waiting-row" id="waitingRow">
       <div class="pulse-dot"></div>
       <span id="waitingText">Ожидаем результаты диагностики…</span>
@@ -406,6 +420,15 @@ document.getElementById('cancelPollBtn').addEventListener('click', ()=>{
 
 const M360_APP_STORE_URL = 'https://apps.apple.com/ua/app/m360-diagnostics/id1537787194?l=ru';
 const M360_GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.opoint.android&pcampaignid=web_share';
+const M360_STORE_ID = '7BXXD';
+
+function renderStoreQr(){
+  const box = document.getElementById('qrcodeStore');
+  const label = document.getElementById('storeIdLabel');
+  box.innerHTML = '';
+  new QRCode(box, { text: M360_STORE_ID, width: 140, height: 140, colorDark: '#0A0F1C', colorLight: '#ffffff' });
+  label.textContent = M360_STORE_ID;
+}
 
 /* ---------- QR ---------- */
 function renderQR(imei){
@@ -415,6 +438,7 @@ function renderQR(imei){
   androidBox.innerHTML = '';
   new QRCode(iosBox, { text: M360_APP_STORE_URL, width: 140, height: 140, colorDark: '#0A0F1C', colorLight: '#ffffff' });
   new QRCode(androidBox, { text: M360_GOOGLE_PLAY_URL, width: 140, height: 140, colorDark: '#0A0F1C', colorLight: '#ffffff' });
+  renderStoreQr();
 }
 
 /* ---------- Test list rendering ---------- */
