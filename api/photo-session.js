@@ -9,8 +9,8 @@
 //   KV_REST_API_URL
 //   KV_REST_API_TOKEN
 //
-// GET  /api/photo-session?session=<id>   -> { result } or 404 if not ready yet
-// POST /api/photo-session { session, result } -> stores the result (10 min TTL)
+// GET  /api/photo-session?session=<id>   -> { result, thumbnails } or 404 if not ready yet
+// POST /api/photo-session { session, result, thumbnails } -> stores it (10 min TTL)
 
 const TTL_SECONDS = 600; // 10 minutes — plenty for a phone-to-desktop handoff
 
@@ -37,13 +37,14 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const raw = await kv('get', key);
       if (!raw) return res.status(404).json({ error: 'Not ready yet' });
-      return res.status(200).json({ result: JSON.parse(raw) });
+      const stored = JSON.parse(raw);
+      return res.status(200).json({ result: stored.result, thumbnails: stored.thumbnails || {} });
     }
 
     if (req.method === 'POST') {
-      const { result } = req.body || {};
+      const { result, thumbnails } = req.body || {};
       if (!result) return res.status(400).json({ error: 'result is required' });
-      await kv('set', key, JSON.stringify(result), 'EX', TTL_SECONDS);
+      await kv('set', key, JSON.stringify({ result, thumbnails: thumbnails || {} }), 'EX', TTL_SECONDS);
       return res.status(200).json({ ok: true });
     }
 
